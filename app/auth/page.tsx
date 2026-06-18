@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 export default function AuthPage() {
   const [email, setEmail] = useState("");
@@ -14,10 +15,17 @@ export default function AuthPage() {
   const [loading, setLoading] = useState(false);
   const [checkEmail, setCheckEmail] = useState(false);
   const router = useRouter();
-  const supabase = createClient();
+  const supabaseRef = useRef<SupabaseClient | null>(null);
+
+  useEffect(() => {
+    supabaseRef.current = createClient();
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    const supabase = supabaseRef.current;
+    if (!supabase) return;
+
     setLoading(true);
     setError("");
 
@@ -39,6 +47,8 @@ export default function AuthPage() {
   }
 
   async function handleGoogle() {
+    const supabase = supabaseRef.current;
+    if (!supabase) return;
     await supabase.auth.signInWithOAuth({
       provider: "google",
       options: { redirectTo: `${location.origin}/auth/callback` },
