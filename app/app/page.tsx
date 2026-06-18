@@ -3,8 +3,6 @@
 import { useState } from "react";
 import { calculateSQ9, isValidSwing } from "@/lib/gann";
 import { calculateAstroCycle, fmtSwingTime } from "@/lib/astro";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { LivePrice } from "@/components/live-price";
 
@@ -14,28 +12,28 @@ export default function AppPage() {
   const [tab, setTab] = useState<Tab>("sq9");
 
   return (
-    <main className="min-h-screen p-6 max-w-3xl mx-auto">
+    <main className="min-h-screen p-6 max-w-3xl mx-auto text-foreground">
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <h1 className="text-2xl font-bold">
-          <span className="text-gold">QUANTUM</span> Leaps
+          <span className="text-[#D4AF37]">QUANTUM</span> Leaps
         </h1>
         <div className="flex items-center gap-2">
-          <ThemeToggle />
           <div className="flex gap-1 font-mono text-xs">
-          <button
-            onClick={() => setTab("sq9")}
-            className={`px-3 py-1.5 rounded ${tab === "sq9" ? "bg-gold text-background" : "text-muted-foreground hover:text-foreground"}`}
-          >
-            SQ9
-          </button>
-          <button
-            onClick={() => setTab("astro")}
-            className={`px-3 py-1.5 rounded ${tab === "astro" ? "bg-gold text-background" : "text-muted-foreground hover:text-foreground"}`}
-          >
-            ASTRO
-          </button>
+            <button
+              onClick={() => setTab("sq9")}
+              className={`px-3 py-1.5 rounded ${tab === "sq9" ? "bg-[#D4AF37] text-black" : "text-zinc-400 hover:text-white"}`}
+            >
+              SQ9
+            </button>
+            <button
+              onClick={() => setTab("astro")}
+              className={`px-3 py-1.5 rounded ${tab === "astro" ? "bg-[#D4AF37] text-black" : "text-zinc-400 hover:text-white"}`}
+            >
+              ASTRO
+            </button>
           </div>
+          <ThemeToggle />
         </div>
       </div>
 
@@ -57,14 +55,18 @@ function SQ9Calculator() {
   const [error, setError] = useState("");
 
   function handleCalc() {
+    console.log("[SQ9] calc", { high, low });
     const h = parseFloat(high);
     const l = parseFloat(low);
     if (!isValidSwing(h, l)) {
-      setError("High harus > Low, keduanya > 0");
+      setError(`Input invalid: High=${high}, Low=${low}. High harus > Low, keduanya > 0.`);
+      setResult(null);
       return;
     }
     setError("");
-    setResult(calculateSQ9(h, l));
+    const r = calculateSQ9(h, l);
+    console.log("[SQ9] result", r);
+    setResult(r);
   }
 
   function handleCopy() {
@@ -85,69 +87,74 @@ function SQ9Calculator() {
     <div className="space-y-6">
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="text-xs font-mono text-muted-foreground mb-1 block">
+          <label className="text-xs font-mono text-zinc-400 mb-1 block">
             SWING HIGH
           </label>
-          <Input
+          <input
             type="number"
             step="0.01"
             placeholder="3350.50"
             value={high}
             onChange={(e) => setHigh(e.target.value)}
-            className="font-mono"
+            className="w-full bg-zinc-900 border border-zinc-700 rounded-md px-3 py-2 text-base font-mono text-white placeholder:text-zinc-600 focus:border-[#D4AF37] focus:outline-none"
           />
         </div>
         <div>
-          <label className="text-xs font-mono text-muted-foreground mb-1 block">
+          <label className="text-xs font-mono text-zinc-400 mb-1 block">
             SWING LOW
           </label>
-          <Input
+          <input
             type="number"
             step="0.01"
             placeholder="3320.00"
             value={low}
             onChange={(e) => setLow(e.target.value)}
-            className="font-mono"
+            className="w-full bg-zinc-900 border border-zinc-700 rounded-md px-3 py-2 text-base font-mono text-white placeholder:text-zinc-600 focus:border-[#D4AF37] focus:outline-none"
           />
         </div>
       </div>
 
-      {error && <p className="text-sm text-sell">{error}</p>}
+      {error && <p className="text-sm text-red-500 font-mono">{error}</p>}
 
-      <Button
+      <button
+        type="button"
         onClick={handleCalc}
-        className="w-full bg-gold text-background hover:bg-gold-light"
+        className="w-full bg-[#D4AF37] hover:bg-[#F0D060] text-black font-medium py-2 rounded-md"
       >
         Hitung
-      </Button>
+      </button>
 
       {result && (
-        <div className="border border-border rounded-lg p-4">
+        <div className="border border-zinc-700 rounded-lg p-4 bg-zinc-900">
           <div className="flex justify-between items-center mb-4">
-            <p className="font-mono text-xs text-muted-foreground">
+            <p className="font-mono text-xs text-zinc-400">
               GANN SQUARE OF 9
             </p>
-            <Button variant="ghost" size="sm" onClick={handleCopy}>
+            <button
+              type="button"
+              onClick={handleCopy}
+              className="text-xs text-[#D4AF37] hover:text-[#F0D060] font-mono"
+            >
               Copy
-            </Button>
+            </button>
           </div>
 
           <div className="grid grid-cols-2 gap-6">
             <div>
-              <p className="text-xs font-mono text-buy mb-2">BUY LEVELS</p>
+              <p className="text-xs font-mono text-[#22C55E] mb-2">BUY LEVELS</p>
               {result.buy.map((v, i) => (
                 <div key={i} className="flex justify-between font-mono text-sm py-1">
-                  <span className="text-muted-foreground">B{i + 1}</span>
-                  <span className="text-buy">{v}</span>
+                  <span className="text-zinc-500">B{i + 1}</span>
+                  <span className="text-[#22C55E] font-bold">{v}</span>
                 </div>
               ))}
             </div>
             <div>
-              <p className="text-xs font-mono text-sell mb-2">SELL LEVELS</p>
+              <p className="text-xs font-mono text-[#EF4444] mb-2">SELL LEVELS</p>
               {result.sell.map((v, i) => (
                 <div key={i} className="flex justify-between font-mono text-sm py-1">
-                  <span className="text-muted-foreground">S{i + 1}</span>
-                  <span className="text-sell">{v}</span>
+                  <span className="text-zinc-500">S{i + 1}</span>
+                  <span className="text-[#EF4444] font-bold">{v}</span>
                 </div>
               ))}
             </div>
@@ -166,7 +173,6 @@ function AstroCycle() {
   const [result, setResult] = useState<ReturnType<typeof calculateAstroCycle> | null>(null);
   const [now, setNow] = useState("");
 
-  // ponytail: native Date, no library
   function handleSetNow() {
     const d = new Date();
     const pad = (n: number) => String(n).padStart(2, "0");
@@ -175,36 +181,41 @@ function AstroCycle() {
   }
 
   function handleCalc() {
-    if (!swingDate) return;
-    setResult(calculateAstroCycle(timeframe, new Date(swingDate), swingDir));
+    console.log("[Astro] calc", { timeframe, swingDate, swingDir });
+    if (!swingDate) {
+      alert("Pilih swing time dulu");
+      return;
+    }
+    const r = calculateAstroCycle(timeframe, new Date(swingDate), swingDir);
+    console.log("[Astro] result", r);
+    setResult(r);
     setNow(new Date().toLocaleString("id-ID"));
   }
 
-  // Calculate days/hours until turn
   function getTimeUntilTurn(turnDate: string) {
     const diff = new Date(turnDate).getTime() - Date.now();
     if (diff < 0) {
       const past = Math.abs(diff);
       const d = Math.floor(past / 86400000);
-      const h = Math.floor((past % 86400000) / 3600000);
+      const h = Math.floor((past % 86400000) / 36000000);
       return { text: `${d}h ${h}j yang lalu`, isPast: true };
     }
     const d = Math.floor(diff / 86400000);
-    const h = Math.floor((diff % 86400000) / 3600000);
+    const h = Math.floor((diff % 86400000) / 36000000);
     return { text: `${d}h ${h}j lagi`, isPast: false };
   }
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
-          <label className="text-xs font-mono text-muted-foreground mb-1 block">
+          <label className="text-xs font-mono text-zinc-400 mb-1 block">
             TIMEFRAME
           </label>
           <select
             value={timeframe}
             onChange={(e) => setTimeframe(e.target.value)}
-            className="w-full bg-input border border-border rounded-md px-3 py-2 text-sm font-mono"
+            className="w-full bg-zinc-900 border border-zinc-700 rounded-md px-3 py-2 text-sm font-mono text-white"
           >
             {["M1", "M5", "M15", "M30", "H1", "H4", "D1"].map((tf) => (
               <option key={tf} value={tf}>{tf}</option>
@@ -212,35 +223,33 @@ function AstroCycle() {
           </select>
         </div>
         <div>
-          <label className="text-xs font-mono text-muted-foreground mb-1 block">
+          <label className="text-xs font-mono text-zinc-400 mb-1 block">
             SWING TIME
           </label>
           <div className="flex gap-2">
-            <Input
+            <input
               type="datetime-local"
               value={swingDate}
               onChange={(e) => setSwingDate(e.target.value)}
-              className="font-mono flex-1"
+              className="flex-1 bg-zinc-900 border border-zinc-700 rounded-md px-3 py-2 text-sm font-mono text-white"
             />
-            <Button
+            <button
               type="button"
-              variant="outline"
-              size="sm"
               onClick={handleSetNow}
-              className="font-mono text-xs shrink-0"
+              className="font-mono text-xs px-3 py-2 bg-zinc-800 hover:bg-zinc-700 text-white rounded-md shrink-0"
             >
               Sekarang
-            </Button>
+            </button>
           </div>
         </div>
         <div>
-          <label className="text-xs font-mono text-muted-foreground mb-1 block">
+          <label className="text-xs font-mono text-zinc-400 mb-1 block">
             SWING TYPE
           </label>
           <select
             value={swingDir}
             onChange={(e) => setSwingDir(e.target.value as "high" | "low")}
-            className="w-full bg-input border border-border rounded-md px-3 py-2 text-sm font-mono"
+            className="w-full bg-zinc-900 border border-zinc-700 rounded-md px-3 py-2 text-sm font-mono text-white"
           >
             <option value="high">HIGH</option>
             <option value="low">LOW</option>
@@ -248,45 +257,46 @@ function AstroCycle() {
         </div>
       </div>
 
-      <Button
+      <button
+        type="button"
         onClick={handleCalc}
-        className="w-full bg-gold text-background hover:bg-gold-light"
+        className="w-full bg-[#D4AF37] hover:bg-[#F0D060] text-black font-medium py-2 rounded-md"
       >
         Hitung Cycle
-      </Button>
+      </button>
 
       {result && (
-        <div className="border border-border rounded-lg p-4 font-mono text-sm space-y-2">
+        <div className="border border-zinc-700 rounded-lg p-4 bg-zinc-900 font-mono text-sm space-y-2">
           <div className="flex justify-between">
-            <span className="text-muted-foreground">Cycle</span>
+            <span className="text-zinc-400">Cycle</span>
             <span>{result.cycleBars} bar</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-muted-foreground">Durasi</span>
+            <span className="text-zinc-400">Durasi</span>
             <span>{result.duration}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-muted-foreground">Turn Date</span>
+            <span className="text-zinc-400">Turn Date</span>
             <span>{fmtSwingTime(new Date(result.nextTurnDate))}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-muted-foreground">Countdown</span>
-            <span className={getTimeUntilTurn(result.nextTurnDate).isPast ? "text-sell" : "text-buy"}>
+            <span className="text-zinc-400">Countdown</span>
+            <span className={getTimeUntilTurn(result.nextTurnDate).isPast ? "text-red-500" : "text-green-500"}>
               {getTimeUntilTurn(result.nextTurnDate).text}
             </span>
           </div>
           <div className="flex justify-between">
-            <span className="text-muted-foreground">Prediksi</span>
-            <span className={result.direction === "bullish" ? "text-buy" : "text-sell"}>
+            <span className="text-zinc-400">Prediksi</span>
+            <span className={result.direction === "bullish" ? "text-green-500" : "text-red-500"}>
               {result.direction.toUpperCase()}
             </span>
           </div>
           <div className="flex justify-between">
-            <span className="text-muted-foreground">Confidence</span>
+            <span className="text-zinc-400">Confidence</span>
             <span>{result.confidence}</span>
           </div>
           {now && (
-            <p className="text-xs text-muted-foreground pt-2 border-t border-border">
+            <p className="text-xs text-zinc-500 pt-2 border-t border-zinc-700">
               Dihitung: {now}
             </p>
           )}
