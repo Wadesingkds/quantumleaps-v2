@@ -256,10 +256,6 @@ function AstroCycle() {
       {result && (
         <div className="border border-zinc-700 rounded-lg p-4 bg-zinc-900 font-mono text-sm space-y-2">
           <div className="flex justify-between">
-            <span className="text-zinc-400">Cycle</span>
-            <span>{result.cycleBars} bar</span>
-          </div>
-          <div className="flex justify-between">
             <span className="text-zinc-400">Durasi</span>
             <span>{result.duration}</span>
           </div>
