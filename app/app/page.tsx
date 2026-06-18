@@ -70,16 +70,14 @@ function SQ9Calculator() {
 
   function handleCopy() {
     if (!result) return;
-    const text = [
-      `═══ GANN SQ9 (${result.type.toUpperCase()} ${result.base}) ═══`,
+    const lines = [
+      "═══ QUANTUM Leaps — Gann SQ9 ═══",
+      `Type: ${result.type.toUpperCase()} ${result.base}`,
       "",
-      "BUY (above):",
-      ...result.buy.map((v, i) => `  B${i + 1}: ${v}`),
-      "",
-      "SELL (below):",
-      ...result.sell.map((v, i) => `  S${i + 1}: ${v}`),
-    ].join("\n");
-    navigator.clipboard.writeText(text);
+      result.label + ":",
+      ...result.levels.map((v, i) => `  ${result.type === "high" ? "B" : "S"}${i + 1}: ${v}`),
+    ];
+    navigator.clipboard.writeText(lines.join("\n"));
   }
 
   return (
@@ -138,25 +136,16 @@ function SQ9Calculator() {
             </button>
           </div>
 
-          <div className="grid grid-cols-2 gap-6">
-            <div>
-              <p className="text-xs font-mono text-[#22C55E] mb-2">BUY (above)</p>
-              {result.buy.map((v, i) => (
-                <div key={i} className="flex justify-between font-mono text-sm py-1">
-                  <span className="text-zinc-500">B{i + 1}</span>
-                  <span className="text-[#22C55E] font-bold">{v}</span>
-                </div>
-              ))}
-            </div>
-            <div>
-              <p className="text-xs font-mono text-[#EF4444] mb-2">SELL (below)</p>
-              {result.sell.map((v, i) => (
-                <div key={i} className="flex justify-between font-mono text-sm py-1">
-                  <span className="text-zinc-500">S{i + 1}</span>
-                  <span className="text-[#EF4444] font-bold">{v}</span>
-                </div>
-              ))}
-            </div>
+          <div>
+            <p className={`text-xs font-mono mb-2 ${result.type === "high" ? "text-[#22C55E]" : "text-[#EF4444]"}`}>
+              {result.label}
+            </p>
+            {result.levels.map((v: number, i: number) => (
+              <div key={i} className="flex justify-between font-mono text-sm py-1">
+                <span className="text-zinc-500">{result.type === "high" ? `B${i + 1}` : `S${i + 1}`}</span>
+                <span className={`font-bold ${result.type === "high" ? "text-[#22C55E]" : "text-[#EF4444]"}`}>{v}</span>
+              </div>
+            ))}
           </div>
         </div>
       )}

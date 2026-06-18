@@ -1,28 +1,41 @@
-// ponytail: pure math — input satu harga cukup, tentukan type (high/low)
+// ponytail: Gann SQ9 — single swing point + type
+// Formula: matches quantum-astro (tested version)
 
 export interface SQ9Levels {
   base: number;
   type: "high" | "low";
-  buy: number[];
-  sell: number[];
+  levels: number[];
+  label: string;
 }
 
 /**
- * Gann Square of 9 — single swing point
- * type='high' → buy levels projected above
- * type='low'  → sell levels projected below
+ * Gann Square of 9 — projection levels
+ * type='high' → BUY levels BELOW swing (support zones)
+ * type='low'  → SELL levels ABOVE swing (resistance zones)
  */
 export function calculateSQ9(price: number, type: "high" | "low"): SQ9Levels {
   const sqrt = Math.sqrt(price);
-  const buy = [1, 2, 3, 4, 5].map((n) => {
-    const val = (sqrt + n * 0.125) ** 2;
-    return Math.round(val * 100) / 100;
-  });
-  const sell = [1, 2, 3, 4, 5].map((n) => {
-    const val = (sqrt - n * 0.125) ** 2;
-    return Math.round(val * 100) / 100;
-  });
-  return { base: price, type, buy, sell };
+  // Standard SQ9 increments: 0.125 (45°), 0.175 (mid), 0.250 (90°)
+  const increments = [0.125, 0.175, 0.250];
+
+  let levels: number[];
+  let label: string;
+
+  if (type === "high") {
+    // Buy = support below high
+    levels = increments.map((inc) =>
+      Math.round(Math.pow(sqrt - inc, 2) * 100) / 100
+    );
+    label = "BUY (support below high)";
+  } else {
+    // Sell = resistance above low
+    levels = increments.map((inc) =>
+      Math.round(Math.pow(sqrt + inc, 2) * 100) / 100
+    );
+    label = "SELL (resistance above low)";
+  }
+
+  return { base: price, type, levels, label };
 }
 
 /** Validate single price input */
