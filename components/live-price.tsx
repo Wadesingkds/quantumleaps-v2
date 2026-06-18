@@ -1,101 +1,69 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef } from "react";
 
-// ponytail: native fetch, no library. Free API fallback chain.
-const API_SOURCES = [
-  {
-    name: "Metal Price API",
-    url: "https://api.metals.dev/v1/latest?api_key=demo&currency=USD&unit=toz",
-    parse: (d: Record<string, unknown>) => {
-      const metals = d.metals as Record<string, number>;
-      return metals?.gold;
-    },
-  },
-  {
-    name: "Exchange Rate",
-    url: "https://open.er-api.com/v6/latest/USD",
-    parse: (d: Record<string, unknown>) => {
-      const rates = d.rates as Record<string, number>;
-      // XAU is ~1/31.1035 of gold price per oz, but this API doesn't have XAU
-      // Return null to skip
-      return null;
-    },
-  },
-];
-
-interface PriceData {
-  price: number;
-  source: string;
-  time: string;
-}
-
+// ponytail: TradingView ticker widget — no API, free, real-time XAUUSD
 export function LivePrice() {
-  const [data, setData] = useState<PriceData | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const containerRef = useRef<HTMLDivElement>(null);
 
-  async function fetchPrice() {
-    setLoading(true);
-    setError("");
+  useEffect(() => {
+    if (!containerRef.current) return;
 
-    for (const api of API_SOURCES) {
-      try {
-        const res = await fetch(api.url);
-        if (!res.ok) continue;
-        const json = await res.json();
-        const price = api.parse(json);
-        if (price && price > 0) {
-          setData({
-            price: Math.round(price * 100) / 100,
-            source: api.name,
-            time: new Date().toLocaleTimeString("id-ID"),
-          });
-          setLoading(false);
-          return;
-        }
-      } catch {
-        continue;
-      }
-    }
+    // Clean previous widget
+    containerRef.current.innerHTML = "";
 
-    setError("Gagal fetch harga. Coba lagi.");
-    setLoading(false);
-  }
+    // TradingView ticker tape widget
+    const script = document.createElement("script");
+    script.src =
+      "https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js";
+    script.async = true;
+    script.innerHTML = JSON.stringify({
+      symbols: [
+        {
+          proName: "OANDA:XAUUSD",
+          title: "XAU/USD",
+        },
+        {
+          proName: "TVC:GOLD",
+          title: "GOLD",
+        },
+        {
+          proName: "FX_IDC:EURUSD",
+          title: "EUR/USD",
+        },
+      ],
+      showSymbolLogo: true,
+      isTransparent: true,
+      displayMode: "adaptive",
+      colorTheme: "dark",
+      locale: "id",
+    });
+
+    // Wrap in container
+    const widget = document.createElement("div");
+    widget.className = "tradingview-widget-container";
+    widget.style.width = "100%";
+    const inner = document.createElement("div");
+    inner.className = "tradingview-widget-container__widget";
+    widget.appendChild(inner);
+    widget.appendChild(script);
+    containerRef.current.appendChild(widget);
+  }, []);
 
   return (
-    <div className="border border-border rounded-lg p-4">
-      <div className="flex items-center justify-between mb-2">
-        <p className="font-mono text-xs text-muted-foreground">
-          XAUUSD LIVE
-        </p>
-        <button
-          onClick={fetchPrice}
-          disabled={loading}
-          className="font-mono text-xs text-gold hover:text-gold-light disabled:opacity-50"
+    <div className="border border-zinc-700 rounded-lg overflow-hidden bg-zinc-900">
+      <div className="flex items-center justify-between px-4 py-2 border-b border-zinc-700">
+        <p className="font-mono text-xs text-zinc-400">LIVE · TRADINGVIEW</p>
+        <a
+          href="https://www.tradingview.com/symbols/OANDA-XAUUSD/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="font-mono text-xs text-[#D4AF37] hover:text-[#F0D060]"
         >
-          {loading ? "Loading..." : "Refresh"}
-        </button>
+          Chart →
+        </a>
       </div>
-
-      {error && <p className="text-sm text-sell">{error}</p>}
-
-      {data && (
-        <div>
-          <p className="text-3xl font-bold font-mono">
-            ${data.price.toLocaleString("id-ID")}
-          </p>
-          <p className="text-xs text-muted-foreground mt-1">
-            {data.source} · {data.time}
-          </p>
-        </div>
-      )}
-
-      {!data && !error && !loading && (
-        <p className="text-sm text-muted-foreground">
-          Tekan Refresh untuk harga terkini
-        </p>
-      )}
+      <div ref={containerRef} className="bg-zinc-900" />
     </div>
   );
 }
