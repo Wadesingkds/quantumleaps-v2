@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { calculateSQ9, isValidSwing } from "@/lib/gann";
+import { calculateSQ9, isValidPrice } from "@/lib/gann";
 import { calculateAstroCycle, fmtSwingTime } from "@/lib/astro";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { LivePrice } from "@/components/live-price";
@@ -49,22 +49,21 @@ export default function AppPage() {
 
 /* ── SQ9 Calculator ── */
 function SQ9Calculator() {
-  const [high, setHigh] = useState("");
-  const [low, setLow] = useState("");
+  const [price, setPrice] = useState("");
+  const [type, setType] = useState<"high" | "low">("high");
   const [result, setResult] = useState<ReturnType<typeof calculateSQ9> | null>(null);
   const [error, setError] = useState("");
 
   function handleCalc() {
-    console.log("[SQ9] calc", { high, low });
-    const h = parseFloat(high);
-    const l = parseFloat(low);
-    if (!isValidSwing(h, l)) {
-      setError(`Input invalid: High=${high}, Low=${low}. High harus > Low, keduanya > 0.`);
+    console.log("[SQ9] calc", { price, type });
+    const p = parseFloat(price);
+    if (!isValidPrice(p)) {
+      setError(`Input invalid: "${price}". Masukkan harga > 0.`);
       setResult(null);
       return;
     }
     setError("");
-    const r = calculateSQ9(h, l);
+    const r = calculateSQ9(p, type);
     console.log("[SQ9] result", r);
     setResult(r);
   }
@@ -72,12 +71,12 @@ function SQ9Calculator() {
   function handleCopy() {
     if (!result) return;
     const text = [
-      "═══ GANN SQ9 LEVELS ═══",
+      `═══ GANN SQ9 (${result.type.toUpperCase()} ${result.base}) ═══`,
       "",
-      "BUY:",
+      "BUY (above):",
       ...result.buy.map((v, i) => `  B${i + 1}: ${v}`),
       "",
-      "SELL:",
+      "SELL (below):",
       ...result.sell.map((v, i) => `  S${i + 1}: ${v}`),
     ].join("\n");
     navigator.clipboard.writeText(text);
@@ -88,29 +87,29 @@ function SQ9Calculator() {
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label className="text-xs font-mono text-zinc-400 mb-1 block">
-            SWING HIGH
+            SWING PRICE
           </label>
           <input
             type="number"
             step="0.01"
             placeholder="3350.50"
-            value={high}
-            onChange={(e) => setHigh(e.target.value)}
+            value={price}
+            onChange={(e) => setPrice(e.target.value)}
             className="w-full bg-zinc-900 border border-zinc-700 rounded-md px-3 py-2 text-base font-mono text-white placeholder:text-zinc-600 focus:border-[#D4AF37] focus:outline-none"
           />
         </div>
         <div>
           <label className="text-xs font-mono text-zinc-400 mb-1 block">
-            SWING LOW
+            SWING TYPE
           </label>
-          <input
-            type="number"
-            step="0.01"
-            placeholder="3320.00"
-            value={low}
-            onChange={(e) => setLow(e.target.value)}
-            className="w-full bg-zinc-900 border border-zinc-700 rounded-md px-3 py-2 text-base font-mono text-white placeholder:text-zinc-600 focus:border-[#D4AF37] focus:outline-none"
-          />
+          <select
+            value={type}
+            onChange={(e) => setType(e.target.value as "high" | "low")}
+            className="w-full bg-zinc-900 border border-zinc-700 rounded-md px-3 py-2 text-base font-mono text-white focus:border-[#D4AF37] focus:outline-none"
+          >
+            <option value="high">HIGH — Buy levels above</option>
+            <option value="low">LOW — Sell levels below</option>
+          </select>
         </div>
       </div>
 
@@ -128,7 +127,7 @@ function SQ9Calculator() {
         <div className="border border-zinc-700 rounded-lg p-4 bg-zinc-900">
           <div className="flex justify-between items-center mb-4">
             <p className="font-mono text-xs text-zinc-400">
-              GANN SQUARE OF 9
+              GANN SQ9 · {result.type.toUpperCase()} {result.base}
             </p>
             <button
               type="button"
@@ -141,7 +140,7 @@ function SQ9Calculator() {
 
           <div className="grid grid-cols-2 gap-6">
             <div>
-              <p className="text-xs font-mono text-[#22C55E] mb-2">BUY LEVELS</p>
+              <p className="text-xs font-mono text-[#22C55E] mb-2">BUY (above)</p>
               {result.buy.map((v, i) => (
                 <div key={i} className="flex justify-between font-mono text-sm py-1">
                   <span className="text-zinc-500">B{i + 1}</span>
@@ -150,7 +149,7 @@ function SQ9Calculator() {
               ))}
             </div>
             <div>
-              <p className="text-xs font-mono text-[#EF4444] mb-2">SELL LEVELS</p>
+              <p className="text-xs font-mono text-[#EF4444] mb-2">SELL (below)</p>
               {result.sell.map((v, i) => (
                 <div key={i} className="flex justify-between font-mono text-sm py-1">
                   <span className="text-zinc-500">S{i + 1}</span>
