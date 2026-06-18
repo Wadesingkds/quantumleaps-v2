@@ -29,11 +29,9 @@ export default function AuthPage() {
     setLoading(true);
     setError("");
 
-    const fn = isLogin
-      ? supabase.auth.signInWithPassword
-      : supabase.auth.signUp;
-
-    const { error } = await fn({ email, password });
+    const { error } = isLogin
+      ? await supabase.auth.signInWithPassword({ email, password })
+      : await supabase.auth.signUp({ email, password });
 
     if (error) {
       setError(error.message);
