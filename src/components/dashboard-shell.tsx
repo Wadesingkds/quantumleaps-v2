@@ -100,7 +100,12 @@ export function DashboardShell() {
               <span className="h-1.5 w-1.5 rounded-full bg-signal-buy" /> XAUUSD Live
             </span>
           </div>
-          <Badge variant="outline" className="font-mono text-xs">Free</Badge>
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="hidden font-mono text-xs md:inline-flex">Free</Badge>
+            <Button variant="ghost" size="icon" className="md:hidden h-9 w-9" render={<Link href="/login" />}>
+              <LogOut className="h-4 w-4" />
+            </Button>
+          </div>
         </header>
 
         {/* Content */}
@@ -211,6 +216,21 @@ export function DashboardShell() {
           </div>
         </main>
       </div>
+      {/* Bottom tab bar — mobile */}
+      <nav className="sticky bottom-0 z-50 flex items-center justify-around border-t border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80 md:hidden">
+        {navItems.map((item) => (
+          <Link
+            key={item.href}
+            href={item.href}
+            className={`flex flex-1 flex-col items-center gap-0.5 py-2.5 text-[11px] font-medium transition-colors ${
+              item.active ? "text-primary" : "text-muted-foreground"
+            }`}
+          >
+            <item.icon className="h-5 w-5" />
+            {item.label}
+          </Link>
+        ))}
+      </nav>
     </div>
   );
 }
