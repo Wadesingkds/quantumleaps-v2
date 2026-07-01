@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Activity, History, LogOut, Settings, Zap, Clock } from "lucide-react";
+import { Activity, History, LogOut, Menu, Settings, X, Zap, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -44,6 +44,21 @@ export function DashboardShell() {
   const [auto, setAuto] = useState(true);
   const [loading, setLoading] = useState(false);
   const [levels, setLevels] = useState<Level[]>(mockLevels);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const navList = navItems.map((item) => (
+    <Link
+      key={item.href}
+      href={item.href}
+      onClick={() => setSidebarOpen(false)}
+      className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+        item.active ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted hover:text-foreground"
+      }`}
+    >
+      <item.icon className="h-4 w-4" />
+      {item.label}
+    </Link>
+  ));
 
   function handleScan(e: React.FormEvent) {
     e.preventDefault();
@@ -65,20 +80,7 @@ export function DashboardShell() {
           </span>
           QuantumLeaps
         </div>
-        <nav className="flex-1 space-y-1 p-4">
-          {navItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                item.active ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted hover:text-foreground"
-              }`}
-            >
-              <item.icon className="h-4 w-4" />
-              {item.label}
-            </Link>
-          ))}
-        </nav>
+        <nav className="flex-1 space-y-1 p-4">{navList}</nav>
         <div className="border-t border-border p-4">
           <Button variant="ghost" size="sm" className="w-full justify-start gap-2 text-muted-foreground" render={<Link href="/login" />}>
             <LogOut className="h-4 w-4" /> Sign Out
@@ -86,14 +88,45 @@ export function DashboardShell() {
         </div>
       </aside>
 
+      {/* Sidebar — mobile drawer */}
+      {sidebarOpen && (
+        <div className="fixed inset-0 z-50 md:hidden">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setSidebarOpen(false)} />
+          <aside className="absolute left-0 top-0 flex h-full w-64 flex-col bg-card shadow-xl">
+            <div className="flex h-16 items-center justify-between border-b border-border px-6 font-bold tracking-tight">
+              <span className="flex items-center gap-2">
+                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+                  <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 2L2 7l10 5 10-5-10-5z" /></svg>
+                </span>
+                QuantumLeaps
+              </span>
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSidebarOpen(false)}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            <nav className="flex-1 space-y-1 p-4">{navList}</nav>
+            <div className="border-t border-border p-4">
+              <Button variant="ghost" size="sm" className="w-full justify-start gap-2 text-muted-foreground" render={<Link href="/login" />}>
+                <LogOut className="h-4 w-4" /> Sign Out
+              </Button>
+            </div>
+          </aside>
+        </div>
+      )}
+
       {/* Main */}
       <div className="flex flex-1 flex-col">
         {/* Top bar — mobile */}
         <header className="flex h-16 items-center justify-between border-b border-border bg-card px-4 md:px-6">
-          <div className="flex items-center gap-2 font-bold md:hidden">
-            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-              <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 2L2 7l10 5 10-5-10-5z" /></svg>
-            </span>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="icon" className="h-9 w-9 md:hidden" onClick={() => setSidebarOpen(true)}>
+              <Menu className="h-5 w-5" />
+            </Button>
+            <div className="flex items-center gap-2 font-bold md:hidden">
+              <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+                <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 2L2 7l10 5 10-5-10-5z" /></svg>
+              </span>
+            </div>
           </div>
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <span className="flex items-center gap-1.5 font-mono">

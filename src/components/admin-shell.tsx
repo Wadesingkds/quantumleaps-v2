@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Activity, History, Shield, Users, BarChart3, Key, Settings, LogOut, Search } from "lucide-react";
+import { Activity, History, Shield, Users, BarChart3, Key, Settings, LogOut, Search, Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -40,6 +40,21 @@ const scans = [
 
 export function AdminShell() {
   const [tab, setTab] = useState("overview");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const navList = adminNav.map((item) => (
+    <Link
+      key={item.href}
+      href={item.href}
+      onClick={() => setSidebarOpen(false)}
+      className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+        item.active ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted hover:text-foreground"
+      }`}
+    >
+      <item.icon className="h-4 w-4" />
+      {item.label}
+    </Link>
+  ));
 
   return (
     <div className="flex min-h-screen flex-col md:flex-row">
@@ -50,20 +65,7 @@ export function AdminShell() {
           </span>
           Admin
         </div>
-        <nav className="flex-1 space-y-1 p-4">
-          {adminNav.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                item.active ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted hover:text-foreground"
-              }`}
-            >
-              <item.icon className="h-4 w-4" />
-              {item.label}
-            </Link>
-          ))}
-        </nav>
+        <nav className="flex-1 space-y-1 p-4">{navList}</nav>
         <div className="space-y-1 border-t border-border p-4">
           <Link href="/dashboard" className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground">
             <Activity className="h-4 w-4" /> Back to App
@@ -74,11 +76,45 @@ export function AdminShell() {
         </div>
       </aside>
 
+      {/* Sidebar — mobile drawer */}
+      {sidebarOpen && (
+        <div className="fixed inset-0 z-50 md:hidden">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setSidebarOpen(false)} />
+          <aside className="absolute left-0 top-0 flex h-full w-64 flex-col bg-card shadow-xl">
+            <div className="flex h-16 items-center justify-between border-b border-border px-6 font-bold tracking-tight">
+              <span className="flex items-center gap-2">
+                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+                  <Shield className="h-3.5 w-3.5" />
+                </span>
+                Admin
+              </span>
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSidebarOpen(false)}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            <nav className="flex-1 space-y-1 p-4">{navList}</nav>
+            <div className="space-y-1 border-t border-border p-4">
+              <Link href="/dashboard" onClick={() => setSidebarOpen(false)} className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground">
+                <Activity className="h-4 w-4" /> Back to App
+              </Link>
+              <Link href="/login" onClick={() => setSidebarOpen(false)} className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground">
+                <LogOut className="h-4 w-4" /> Sign Out
+              </Link>
+            </div>
+          </aside>
+        </div>
+      )}
+
       <div className="flex flex-1 flex-col">
         <header className="flex h-16 items-center justify-between border-b border-border bg-card px-4 md:px-6">
-          <div>
-            <h1 className="font-bold">Admin Panel</h1>
-            <p className="text-xs text-muted-foreground">Manage users, scans, API keys, and settings.</p>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="icon" className="h-9 w-9 md:hidden" onClick={() => setSidebarOpen(true)}>
+              <Menu className="h-5 w-5" />
+            </Button>
+            <div>
+              <h1 className="font-bold">Admin Panel</h1>
+              <p className="text-xs text-muted-foreground">Manage users, scans, API keys, and settings.</p>
+            </div>
           </div>
           <Badge variant="outline" className="gap-1.5">
             <Shield className="h-3 w-3" /> Admin
