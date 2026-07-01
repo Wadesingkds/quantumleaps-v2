@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import Link from "next/link";
 import { Activity, History, LogOut, Menu, Settings, X, Zap, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -150,7 +150,7 @@ export function DashboardShell() {
             </div>
 
             {/* Input form */}
-            <form onSubmit={handleScan} className="rounded-xl border border-border bg-card p-5">
+            <form onSubmit={handleScan} className="rounded-xl border border-border bg-card p-3 md:p-5">
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 <div className="space-y-2">
                   <Label htmlFor="high">Swing High</Label>
@@ -184,16 +184,16 @@ export function DashboardShell() {
                   </button>
                 </div>
               </div>
-              <div className="mt-4 flex gap-2">
-                <Button type="submit" disabled={loading}>
+              <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+                <Button type="submit" disabled={loading} className="sm:w-auto w-full">
                   {loading ? "Mengambil data..." : "Hitung Confluence"}
                 </Button>
-                <Button type="button" variant="outline">Simpan Config</Button>
+                <Button type="button" variant="outline" className="sm:w-auto w-full">Simpan Config</Button>
               </div>
             </form>
 
             {/* Stats */}
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-3 gap-2 md:gap-4">
               {[
                 { label: "Trend", value: "Bullish", color: "text-signal-buy" },
                 { label: "TF", value: tf, color: "text-foreground" },
@@ -210,21 +210,45 @@ export function DashboardShell() {
             <div className="rounded-xl border border-border bg-card">
               <div className="flex items-center justify-between border-b border-border p-4">
                 <h2 className="font-semibold">Level Confluence</h2>
-                <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
                   <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-signal-buy" /> High (7+)</span>
                   <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-primary" /> Med (4-6)</span>
                   <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-muted-foreground" /> Low (1-3)</span>
                 </div>
               </div>
               <div className="divide-y divide-border">
-                <div className="grid grid-cols-[80px_1fr_1fr_100px] gap-4 px-4 py-2 text-xs font-medium text-muted-foreground">
+                <div className="grid grid-cols-[60px_1fr_auto] gap-2 px-3 py-2 text-xs font-medium text-muted-foreground md:hidden">
+                  <span>Level</span>
+                  <span>Price</span>
+                  <span className="text-right">Score</span>
+                </div>
+                <div className="hidden grid-cols-[80px_1fr_1fr_100px] gap-4 px-4 py-2 text-xs font-medium text-muted-foreground md:grid">
                   <span>Level</span>
                   <span>Price</span>
                   <span>Signals</span>
                   <span className="text-right">Score</span>
                 </div>
                 {levels.map((lvl, i) => (
-                  <div key={i} className="grid grid-cols-[80px_1fr_1fr_100px] items-center gap-4 px-4 py-3 text-sm">
+                  <Fragment key={i}>
+                  {/* mobile row */}
+                  <div className="grid grid-cols-[60px_1fr_auto] items-start gap-2 px-3 py-2.5 text-sm md:hidden">
+                    <Badge variant={lvl.type === "sell" ? "destructive" : "secondary"} className="w-fit uppercase">
+                      {lvl.type}
+                    </Badge>
+                    <div className="min-w-0">
+                      <span className="font-mono font-medium">{lvl.price}</span>
+                      <div className="mt-1 flex flex-wrap gap-1">
+                        {lvl.signals.map((s) => (
+                          <Badge key={s} variant="outline" className="font-mono text-[10px]">{s}</Badge>
+                        ))}
+                      </div>
+                    </div>
+                    <span className={`text-right font-mono text-base font-bold ${scoreColor(lvl.score)}`}>
+                      {lvl.score}<span className="text-xs text-muted-foreground">/10</span>
+                    </span>
+                  </div>
+                  {/* desktop row */}
+                  <div className="hidden grid-cols-[80px_1fr_1fr_100px] items-center gap-4 px-4 py-3 text-sm md:grid">
                     <Badge variant={lvl.type === "sell" ? "destructive" : "secondary"} className="w-fit uppercase">
                       {lvl.type}
                     </Badge>
@@ -238,6 +262,7 @@ export function DashboardShell() {
                       {lvl.score}<span className="text-xs text-muted-foreground">/10</span>
                     </span>
                   </div>
+                  </Fragment>
                 ))}
               </div>
               <Separator />
