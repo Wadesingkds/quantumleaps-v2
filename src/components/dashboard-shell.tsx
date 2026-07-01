@@ -1,0 +1,216 @@
+"use client";
+
+import { useState } from "react";
+import Link from "next/link";
+import { Activity, History, LogOut, Settings, Zap, Clock } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Separator } from "@/components/ui/separator";
+
+const navItems = [
+  { label: "Scanner", href: "/dashboard", icon: Activity, active: true },
+  { label: "History", href: "/history", icon: History },
+  { label: "Account", href: "/account", icon: Settings },
+];
+
+type Level = {
+  type: "buy" | "sell";
+  price: string;
+  score: number;
+  signals: string[];
+};
+
+// ponytail: mock data — replace with /api/confluence when backend wired
+const mockLevels: Level[] = [
+  { type: "sell", price: "4,369.66", score: 8, signals: ["FVG", "OB", "BOS"] },
+  { type: "buy", price: "4,306.11", score: 6, signals: ["FVG", "CHoCH"] },
+  { type: "sell", price: "4,412.30", score: 5, signals: ["OB"] },
+  { type: "buy", price: "4,285.00", score: 3, signals: ["FVG"] },
+];
+
+function scoreColor(score: number) {
+  if (score >= 7) return "text-signal-buy";
+  if (score >= 4) return "text-primary";
+  return "text-muted-foreground";
+}
+
+export function DashboardShell() {
+  const [swingHigh, setSwingHigh] = useState("");
+  const [swingLow, setSwingLow] = useState("");
+  const [tf, setTf] = useState("15M");
+  const [auto, setAuto] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [levels, setLevels] = useState<Level[]>(mockLevels);
+
+  function handleScan(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true);
+    // ponytail: replace with fetch('/api/confluence?high=...&low=...&tf=...')
+    setTimeout(() => {
+      setLevels(mockLevels);
+      setLoading(false);
+    }, 800);
+  }
+
+  return (
+    <div className="flex min-h-screen flex-col md:flex-row">
+      {/* Sidebar — desktop */}
+      <aside className="hidden w-60 shrink-0 border-r border-border bg-card md:flex md:flex-col">
+        <div className="flex h-16 items-center gap-2 border-b border-border px-6 font-bold tracking-tight">
+          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+            <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 2L2 7l10 5 10-5-10-5z" /></svg>
+          </span>
+          QuantumLeaps
+        </div>
+        <nav className="flex-1 space-y-1 p-4">
+          {navItems.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                item.active ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted hover:text-foreground"
+              }`}
+            >
+              <item.icon className="h-4 w-4" />
+              {item.label}
+            </Link>
+          ))}
+        </nav>
+        <div className="border-t border-border p-4">
+          <Button variant="ghost" size="sm" className="w-full justify-start gap-2 text-muted-foreground" render={<Link href="/login" />}>
+            <LogOut className="h-4 w-4" /> Sign Out
+          </Button>
+        </div>
+      </aside>
+
+      {/* Main */}
+      <div className="flex flex-1 flex-col">
+        {/* Top bar — mobile */}
+        <header className="flex h-16 items-center justify-between border-b border-border bg-card px-4 md:px-6">
+          <div className="flex items-center gap-2 font-bold md:hidden">
+            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+              <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 2L2 7l10 5 10-5-10-5z" /></svg>
+            </span>
+          </div>
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <span className="flex items-center gap-1.5 font-mono">
+              <span className="h-1.5 w-1.5 rounded-full bg-signal-buy" /> XAUUSD Live
+            </span>
+          </div>
+          <Badge variant="outline" className="font-mono text-xs">Free</Badge>
+        </header>
+
+        {/* Content */}
+        <main className="flex-1 overflow-y-auto p-4 md:p-6">
+          <div className="mx-auto max-w-5xl space-y-6">
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight">Scanner</h1>
+              <p className="mt-1 text-sm text-muted-foreground">Gann Square of 9 + SMC Confluence</p>
+            </div>
+
+            {/* Input form */}
+            <form onSubmit={handleScan} className="rounded-xl border border-border bg-card p-5">
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="space-y-2">
+                  <Label htmlFor="high">Swing High</Label>
+                  <Input id="high" value={swingHigh} onChange={(e) => setSwingHigh(e.target.value)} placeholder="4,400.00" className="font-mono" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="low">Swing Low</Label>
+                  <Input id="low" value={swingLow} onChange={(e) => setSwingLow(e.target.value)} placeholder="4,280.00" className="font-mono" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Timeframe</Label>
+                  <Tabs value={tf} onValueChange={setTf}>
+                    <TabsList className="grid w-full grid-cols-4">
+                      <TabsTrigger value="15M">15M</TabsTrigger>
+                      <TabsTrigger value="1H">1H</TabsTrigger>
+                      <TabsTrigger value="4H">4H</TabsTrigger>
+                      <TabsTrigger value="D">D</TabsTrigger>
+                    </TabsList>
+                  </Tabs>
+                </div>
+                <div className="space-y-2">
+                  <Label>Mode</Label>
+                  <button
+                    type="button"
+                    onClick={() => setAuto(!auto)}
+                    className={`flex h-9 w-full items-center justify-center gap-1.5 rounded-lg border text-sm font-medium transition-colors ${
+                      auto ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground"
+                    }`}
+                  >
+                    <Zap className="h-3.5 w-3.5" /> Auto
+                  </button>
+                </div>
+              </div>
+              <div className="mt-4 flex gap-2">
+                <Button type="submit" disabled={loading}>
+                  {loading ? "Mengambil data..." : "Hitung Confluence"}
+                </Button>
+                <Button type="button" variant="outline">Simpan Config</Button>
+              </div>
+            </form>
+
+            {/* Stats */}
+            <div className="grid grid-cols-3 gap-4">
+              {[
+                { label: "Trend", value: "Bullish", color: "text-signal-buy" },
+                { label: "TF", value: tf, color: "text-foreground" },
+                { label: "Candles", value: "248", color: "text-foreground" },
+              ].map((s) => (
+                <div key={s.label} className="rounded-lg border border-border bg-card p-4">
+                  <div className="text-xs text-muted-foreground">{s.label}</div>
+                  <div className={`mt-1 font-mono text-lg font-semibold ${s.color}`}>{s.value}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Results table */}
+            <div className="rounded-xl border border-border bg-card">
+              <div className="flex items-center justify-between border-b border-border p-4">
+                <h2 className="font-semibold">Level Confluence</h2>
+                <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                  <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-signal-buy" /> High (7+)</span>
+                  <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-primary" /> Med (4-6)</span>
+                  <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-muted-foreground" /> Low (1-3)</span>
+                </div>
+              </div>
+              <div className="divide-y divide-border">
+                <div className="grid grid-cols-[80px_1fr_1fr_100px] gap-4 px-4 py-2 text-xs font-medium text-muted-foreground">
+                  <span>Level</span>
+                  <span>Price</span>
+                  <span>Signals</span>
+                  <span className="text-right">Score</span>
+                </div>
+                {levels.map((lvl, i) => (
+                  <div key={i} className="grid grid-cols-[80px_1fr_1fr_100px] items-center gap-4 px-4 py-3 text-sm">
+                    <Badge variant={lvl.type === "sell" ? "destructive" : "secondary"} className="w-fit uppercase">
+                      {lvl.type}
+                    </Badge>
+                    <span className="font-mono font-medium">{lvl.price}</span>
+                    <div className="flex flex-wrap gap-1">
+                      {lvl.signals.map((s) => (
+                        <Badge key={s} variant="outline" className="font-mono text-[10px]">{s}</Badge>
+                      ))}
+                    </div>
+                    <span className={`text-right font-mono text-lg font-bold ${scoreColor(lvl.score)}`}>
+                      {lvl.score}<span className="text-xs text-muted-foreground">/10</span>
+                    </span>
+                  </div>
+                ))}
+              </div>
+              <Separator />
+              <div className="flex items-center gap-2 p-4 text-xs text-muted-foreground">
+                <Clock className="h-3.5 w-3.5" />
+                Data XAUUSD live dari TradingView · Cache 5 menit
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
+    </div>
+  );
+}
