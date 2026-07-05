@@ -57,6 +57,10 @@ export default function CalculatorPage() {
   const [error, setError] = useState("");
   const [data, setData] = useState<GannResponse | null>(null);
 
+  const BINANCE_TF: Record<string, string> = {
+    "15m": "15m", "1h": "1h", "4h": "4h", "1d": "1d",
+  };
+
   async function handleCalc(e: React.FormEvent) {
     e.preventDefault();
     const high = parseFloat(swingHigh);
@@ -68,9 +72,23 @@ export default function CalculatorPage() {
     setLoading(true);
     setError("");
     try {
-      const res = await fetch(
-        `/api/gann?high=${high}&low=${low}&tf=${timeframe}`
+      // Fetch candles client-side (Binance accessible from browser)
+      const tf = BINANCE_TF[timeframe] || "1h";
+      const kRes = await fetch(
+        `https://api.binance.com/api/v3/klines?symbol=PAXGUSDT&interval=${tf}&limit=200`
       );
+      if (!kRes.ok) throw new Error(`Binance ${kRes.status}`);
+      const raw = await kRes.json();
+      const candles = raw.map((k: number[]) => ({
+        time: k[0], open: +k[1], high: +k[2], low: +k[3], close: +k[4],
+      }));
+
+      // POST candles to server for Gann+SMC calc
+      const res = await fetch("/api/gann", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ high, low, candles }),
+      });
       if (!res.ok) throw new Error(`API ${res.status}`);
       const json = await res.json();
       if (json.error) throw new Error(json.error);
