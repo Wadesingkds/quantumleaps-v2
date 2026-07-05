@@ -65,14 +65,14 @@ export function ScannerView() {
     setLoading(true);
     setError(null);
     try {
-      // Client-side fetch from PineTS VPS (browser can reach port 5555)
-      const kRes = await fetch(`http://43.133.145.181:5555/xauusd?tf=${tf}&limit=200`);
-      if (!kRes.ok) throw new Error(`PineTS ${kRes.status}`);
-      const pinets = await kRes.json();
-      if (pinets.error) throw new Error(pinets.error);
-
-      const candles = pinets.data.map((c: any) => ({
-        time: c.time, open: c.open, high: c.high, low: c.low, close: c.close,
+      // Client-side fetch from Binance PAXG (HTTPS, no mixed content)
+      const kRes = await fetch(
+        `https://api.binance.com/api/v3/klines?symbol=PAXGUSDT&interval=${tf}&limit=200`
+      );
+      if (!kRes.ok) throw new Error(`Binance ${kRes.status}`);
+      const raw = await kRes.json();
+      const candles = raw.map((k: number[]) => ({
+        time: k[0], open: +k[1], high: +k[2], low: +k[3], close: +k[4],
       }));
 
       const res = await fetch('/api/confluence', {
