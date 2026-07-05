@@ -100,9 +100,9 @@ export default function CalculatorPage() {
     setError("");
     try {
       const tf = TF_MAP[timeframe] || "5m";
-      // Fetch candles from PineTS (VPS → Binance, no geo-block)
+      // Fetch candles from PineTS (VPS direct, no geo-block)
       const kRes = await fetch(
-        `https://pinets.sayandaktau.web.id/xauusd?tf=${tf}&limit=500`
+        `http://43.133.145.181:5555/xauusd?tf=${tf}&limit=500`
       );
       if (!kRes.ok) throw new Error(`PineTS ${kRes.status}`);
       const pinets = await kRes.json();

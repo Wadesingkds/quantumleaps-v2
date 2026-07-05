@@ -6,11 +6,10 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-const PINETS_URL = "https://pinets.sayandaktau.web.id";
+const PINETS_URL = "http://43.133.145.181:5555";
 
 type Candle = { time: number; open: number; high: number; low: number; close: number };
 
-// RSI
 function rsi(candles: Candle[], period = 14): number {
   let gains = 0, losses = 0;
   for (let i = candles.length - period; i < candles.length; i++) {
@@ -21,7 +20,6 @@ function rsi(candles: Candle[], period = 14): number {
   return 100 - 100 / (1 + rs);
 }
 
-// EMA
 function ema(candles: Candle[], period: number): number {
   const k = 2 / (period + 1);
   let e = candles[0].close;
@@ -29,7 +27,6 @@ function ema(candles: Candle[], period: number): number {
   return e;
 }
 
-// ATR
 function atr(candles: Candle[], period = 14): number {
   let sum = 0;
   for (let i = candles.length - period; i < candles.length; i++) {
@@ -43,7 +40,6 @@ function atr(candles: Candle[], period = 14): number {
   return sum / period;
 }
 
-// MACD
 function macd(candles: Candle[]): { line: number; signal: number; histogram: number } {
   const k12 = 2 / 13, k26 = 2 / 27, k9 = 2 / 10;
   let e12 = candles[0].close, e26 = candles[0].close, signal = 0;
@@ -57,7 +53,6 @@ function macd(candles: Candle[]): { line: number; signal: number; histogram: num
   return { line: 0, signal: 0, histogram: 0 };
 }
 
-// BB
 function bb(candles: Candle[], period = 20): { basis: number; upper: number; lower: number } {
   const closes = candles.slice(-period).map(c => c.close);
   const mean = closes.reduce((a, b) => a + b, 0) / period;
@@ -65,7 +60,6 @@ function bb(candles: Candle[], period = 20): { basis: number; upper: number; low
   return { basis: mean, upper: mean + 2 * std, lower: mean - 2 * std };
 }
 
-// Gann Square of 9
 function gannLevels(price: number): number[] {
   const sqrt = Math.sqrt(price);
   const levels: number[] = [];
@@ -76,7 +70,6 @@ function gannLevels(price: number): number[] {
   return levels;
 }
 
-// Build response from candles
 function buildResponse(candles: Candle[], tf: string) {
   const price = candles[candles.length - 1].close;
   const rsiVal = rsi(candles);
@@ -106,7 +99,6 @@ function buildResponse(candles: Candle[], tf: string) {
     };
   }).sort((a, b) => b.score - a.score).slice(0, 5);
 
-  // Fire-and-forget DB insert
   supabase.from("scans").insert({
     timeframe: tf, price, trend,
     levels: levels.length, top_score: levels[0]?.score ?? 0,
@@ -122,32 +114,22 @@ function buildResponse(candles: Candle[], tf: string) {
       histogram: Math.round(macdVal.histogram * 10000) / 10000,
     },
     atr: Math.round(atrVal * 1000) / 1000,
-    ema: {
-      ema9: Math.round(ema9 * 100) / 100,
-      ema21: Math.round(ema21 * 100) / 100,
-      ema50: Math.round(ema50 * 100) / 100,
-    },
-    bb: {
-      basis: Math.round(bbVal.basis * 100) / 100,
-      upper: Math.round(bbVal.upper * 100) / 100,
-      lower: Math.round(bbVal.lower * 100) / 100,
-    },
+    ema: { ema9: Math.round(ema9 * 100) / 100, ema21: Math.round(ema21 * 100) / 100, ema50: Math.round(ema50 * 100) / 100 },
+    bb: { basis: Math.round(bbVal.basis * 100) / 100, upper: Math.round(bbVal.upper * 100) / 100, lower: Math.round(bbVal.lower * 100) / 100 },
     levels,
     timestamp: new Date().toISOString(),
-    source: "PineTS (PAXG)",
+    source: "PineTS (PAXG/XAUUSD)",
   };
 }
 
-// ── GET: fetch candles from PineTS worker ──
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const tf = searchParams.get("tf") || "15m";
     const limit = parseInt(searchParams.get("limit") || "200", 10);
 
-    // Fetch from PineTS (VPS → Binance, no geo-block)
     const resp = await fetch(`${PINETS_URL}/xauusd?tf=${tf}&limit=${limit}`, {
-      signal: AbortSignal.timeout(15000),
+      signal: AbortSignal.timeout(20000),
     });
     if (!resp.ok) throw new Error(`PineTS ${resp.status}`);
     const pinets = await resp.json();
@@ -159,24 +141,19 @@ export async function GET(request: Request) {
 
     if (candles.length < 50) throw new Error("Not enough candles from PineTS");
 
-    const result = buildResponse(candles, tf);
-    return NextResponse.json(result);
+    return NextResponse.json(buildResponse(candles, tf));
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 });
   }
 }
 
-// ── POST: candles from client (fallback) ──
 export async function POST(request: Request) {
   try {
     const body = await request.json();
     const { tf, candles } = body as { tf: string; candles: Candle[] };
-
     if (!candles || candles.length < 50)
       return NextResponse.json({ error: "Need ≥50 candles" }, { status: 400 });
-
-    const result = buildResponse(candles, tf || "15m");
-    return NextResponse.json(result);
+    return NextResponse.json(buildResponse(candles, tf || "15m"));
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 });
   }
