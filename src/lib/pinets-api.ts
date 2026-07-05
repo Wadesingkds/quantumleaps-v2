@@ -1,17 +1,19 @@
 // XAUUSD data + indicators via PineTS worker
 const PINETS_URL = 'https://pinets.sayandaktau.web.id';
 
+export type PlotPoint = { time: number; value: number };
+
 export type XauusdData = {
   symbol: string;
   timeframe: string;
   candles: number;
   price: { last: number; high24h: number; low24h: number } | null;
   indicators: {
-    rsi: number[][];
-    macd: number[][];
-    atr: number[][];
-    bollingerBands: number[][];
-    ema: number[][];
+    rsi: PlotPoint[][];
+    macd: PlotPoint[][];
+    atr: PlotPoint[][];
+    bollingerBands: PlotPoint[][];
+    ema: PlotPoint[][];
   };
 };
 
