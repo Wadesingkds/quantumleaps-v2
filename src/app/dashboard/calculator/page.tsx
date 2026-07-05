@@ -84,6 +84,11 @@ export default function CalculatorPage() {
   const [error, setError] = useState("");
   const [data, setData] = useState<GannResponse | null>(null);
 
+  const TF_MAP: Record<string, string> = {
+    "1m": "1m", "3m": "3m", "5m": "5m", "10m": "10m", "15m": "15m",
+    "20m": "20m", "25m": "25m", "30m": "30m",
+  };
+
   async function handleCalc(e: React.FormEvent) {
     e.preventDefault();
     const price = parseFloat(swingPrice);
@@ -94,14 +99,16 @@ export default function CalculatorPage() {
     setLoading(true);
     setError("");
     try {
-      // Fetch candles from Binance (client-side)
+      const tf = TF_MAP[timeframe] || "5m";
+      // Fetch candles from PineTS (VPS → Binance, no geo-block)
       const kRes = await fetch(
-        `https://api.binance.com/api/v3/klines?symbol=PAXGUSDT&interval=${timeframe}&limit=500`
+        `https://pinets.sayandaktau.web.id/xauusd?tf=${tf}&limit=500`
       );
-      if (!kRes.ok) throw new Error(`Binance ${kRes.status}`);
-      const raw = await kRes.json();
-      const candles = raw.map((k: number[]) => ({
-        time: k[0], open: +k[1], high: +k[2], low: +k[3], close: +k[4],
+      if (!kRes.ok) throw new Error(`PineTS ${kRes.status}`);
+      const pinets = await kRes.json();
+      if (pinets.error) throw new Error(pinets.error);
+      const candles = pinets.data.map((c: any) => ({
+        time: c.time, open: c.open, high: c.high, low: c.low, close: c.close,
       }));
 
       // POST to Gann API

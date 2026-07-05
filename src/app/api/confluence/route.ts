@@ -6,6 +6,8 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
+const PINETS_URL = "https://pinets.sayandaktau.web.id";
+
 type Candle = { time: number; open: number; high: number; low: number; close: number };
 
 // RSI
@@ -55,7 +57,7 @@ function macd(candles: Candle[]): { line: number; signal: number; histogram: num
   return { line: 0, signal: 0, histogram: 0 };
 }
 
-// Bollinger Bands
+// BB
 function bb(candles: Candle[], period = 20): { basis: number; upper: number; lower: number } {
   const closes = candles.slice(-period).map(c => c.close);
   const mean = closes.reduce((a, b) => a + b, 0) / period;
@@ -75,7 +77,7 @@ function gannLevels(price: number): number[] {
 }
 
 // Build response from candles
-function buildResponse(candles: Candle[], tf: string, supabaseUrl?: string) {
+function buildResponse(candles: Candle[], tf: string) {
   const price = candles[candles.length - 1].close;
   const rsiVal = rsi(candles);
   const macdVal = macd(candles);
@@ -105,15 +107,13 @@ function buildResponse(candles: Candle[], tf: string, supabaseUrl?: string) {
   }).sort((a, b) => b.score - a.score).slice(0, 5);
 
   // Fire-and-forget DB insert
-  if (supabaseUrl) {
-    supabase.from("scans").insert({
-      timeframe: tf, price, trend,
-      levels: levels.length, top_score: levels[0]?.score ?? 0,
-    }).then(() => {});
-  }
+  supabase.from("scans").insert({
+    timeframe: tf, price, trend,
+    levels: levels.length, top_score: levels[0]?.score ?? 0,
+  }).then(() => {});
 
   return {
-    symbol: "XAUUSD (PAXG)", timeframe: tf, price, trend,
+    symbol: "XAUUSD", timeframe: tf, price, trend,
     candles: candles.length,
     rsi: Math.round(rsiVal * 100) / 100,
     macd: {
@@ -134,11 +134,39 @@ function buildResponse(candles: Candle[], tf: string, supabaseUrl?: string) {
     },
     levels,
     timestamp: new Date().toISOString(),
-    source: "Binance PAXG",
+    source: "PineTS (PAXG)",
   };
 }
 
-// ── POST: candles from client ──
+// ── GET: fetch candles from PineTS worker ──
+export async function GET(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const tf = searchParams.get("tf") || "15m";
+    const limit = parseInt(searchParams.get("limit") || "200", 10);
+
+    // Fetch from PineTS (VPS → Binance, no geo-block)
+    const resp = await fetch(`${PINETS_URL}/xauusd?tf=${tf}&limit=${limit}`, {
+      signal: AbortSignal.timeout(15000),
+    });
+    if (!resp.ok) throw new Error(`PineTS ${resp.status}`);
+    const pinets = await resp.json();
+    if (pinets.error) throw new Error(pinets.error);
+
+    const candles: Candle[] = pinets.data.map((c: any) => ({
+      time: c.time, open: c.open, high: c.high, low: c.low, close: c.close,
+    }));
+
+    if (candles.length < 50) throw new Error("Not enough candles from PineTS");
+
+    const result = buildResponse(candles, tf);
+    return NextResponse.json(result);
+  } catch (e: any) {
+    return NextResponse.json({ error: e.message }, { status: 500 });
+  }
+}
+
+// ── POST: candles from client (fallback) ──
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -147,31 +175,7 @@ export async function POST(request: Request) {
     if (!candles || candles.length < 50)
       return NextResponse.json({ error: "Need ≥50 candles" }, { status: 400 });
 
-    const result = buildResponse(candles, tf || "15m", "save");
-    return NextResponse.json(result);
-  } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: 500 });
-  }
-}
-
-// ── GET: server-side fetch (fallback for local dev) ──
-export async function GET(request: Request) {
-  try {
-    const { searchParams } = new URL(request.url);
-    const tf = searchParams.get("tf") || "15m";
-    const limit = 200;
-
-    const url = `https://api.binance.com/api/v3/klines?symbol=PAXGUSDT&interval=${tf}&limit=${limit}`;
-    const resp = await fetch(url, { signal: AbortSignal.timeout(15000) });
-    if (!resp.ok) throw new Error(`Binance ${resp.status}`);
-    const raw = await resp.json();
-    const candles: Candle[] = raw.map((k: number[]) => ({
-      time: k[0], open: +k[1], high: +k[2], low: +k[3], close: +k[4],
-    }));
-
-    if (candles.length < 50) throw new Error("Not enough candles");
-
-    const result = buildResponse(candles, tf, "save");
+    const result = buildResponse(candles, tf || "15m");
     return NextResponse.json(result);
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 });
