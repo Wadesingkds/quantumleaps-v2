@@ -16,7 +16,6 @@ import {
   TrendingDown,
   Minus,
   Loader2,
-  AlertTriangle,
   CalendarDays,
 } from "lucide-react";
 
@@ -55,10 +54,10 @@ function formatNum(n: number) {
 
 function SignalIcon({ signal }: { signal: string }) {
   if (signal.includes("long"))
-    return <TrendingUp className="size-4 text-emerald-400" />;
+    return <TrendingUp className="size-4 text-emerald-600" />;
   if (signal.includes("short"))
-    return <TrendingDown className="size-4 text-rose-400" />;
-  return <Minus className="size-4 text-zinc-500" />;
+    return <TrendingDown className="size-4 text-rose-600" />;
+  return <Minus className="size-4 text-zinc-400" />;
 }
 
 function MiniSparkline({ data, color }: { data: number[]; color: string }) {
@@ -86,7 +85,6 @@ function MiniSparkline({ data, color }: { data: number[]; color: string }) {
         strokeWidth="2"
         strokeLinejoin="round"
         strokeLinecap="round"
-        className="drop-shadow-[0_0_8px_rgba(var(--color-primary-rgb),0.3)]"
       />
     </svg>
   );
@@ -130,21 +128,21 @@ export default function CotPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="space-y-1">
-          <h1 className="text-3xl font-bold tracking-tight text-white flex items-center gap-3">
+          <h1 className="text-3xl font-bold tracking-tight text-zinc-900 flex items-center gap-3">
             <BarChart3 className="size-8 text-amber-500" />
             COT Report
           </h1>
-          <p className="text-zinc-400 text-sm">
+          <p className="text-zinc-500 text-sm">
             Commitments of Traders — Institutional Smart Money Positioning
           </p>
         </div>
-        <div className="flex items-center gap-3 bg-zinc-900/80 p-1.5 rounded-xl border border-zinc-800">
+        <div className="flex items-center gap-2 bg-white p-1.5 rounded-xl border border-zinc-200 shadow-sm">
           <span className="text-xs font-medium text-zinc-500 px-2">History</span>
           <Select value={weeks} onValueChange={(v: string | null) => setWeeks(v ?? "12")}>
-            <SelectTrigger className="w-24 bg-zinc-800 border-zinc-700 text-white font-mono text-sm h-9">
+            <SelectTrigger className="w-24 bg-zinc-50 border-zinc-200 text-zinc-900 font-mono text-sm h-9">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent className="bg-zinc-800 border-zinc-700">
+            <SelectContent className="bg-white border-zinc-200">
               <SelectItem value="4">4W</SelectItem>
               <SelectItem value="8">8W</SelectItem>
               <SelectItem value="12">12W</SelectItem>
@@ -162,9 +160,8 @@ export default function CotPage() {
       )}
 
       {error && (
-        <Card className="bg-rose-950/20 border-rose-900/50">
-          <CardContent className="pt-6 flex items-center gap-3 text-rose-400">
-            <AlertTriangle className="size-5 shrink-0" />
+        <Card className="bg-rose-50 border-rose-200">
+          <CardContent className="pt-6 flex items-center gap-3 text-rose-700">
             <div className="text-sm">
               <p className="font-semibold">Connection Error</p>
               <p className="opacity-80">{error}</p>
@@ -175,41 +172,51 @@ export default function CotPage() {
 
       {data && (
         <>
-          <div className="flex items-center gap-2 text-xs font-medium text-zinc-500 bg-zinc-900/50 w-fit px-3 py-1.5 rounded-full border border-zinc-800">
-            <CalendarDays className="size-3 text-amber-500/70" />
-            Update as of: {new Date(data.asOf).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+          <div className="flex items-center gap-2 text-xs font-medium text-zinc-600 bg-amber-50 w-fit px-3 py-1.5 rounded-full border border-amber-100">
+            <CalendarDays className="size-3 text-amber-600" />
+            Update as of:{" "}
+            {new Date(data.asOf).toLocaleDateString("id-ID", {
+              day: "numeric",
+              month: "long",
+              year: "numeric",
+            })}
           </div>
 
           <div className="grid gap-8">
             {Object.entries(data.categories).map(([cat, items]) => (
               <section key={cat} className="space-y-4">
                 <div className="flex items-center gap-3">
-                  <h2 className="text-lg font-semibold text-zinc-200">
+                  <h2 className="text-lg font-semibold text-zinc-900">
                     {CATEGORY_LABELS[cat] || cat}
                   </h2>
-                  <div className="h-px flex-1 bg-gradient-to-r from-zinc-800 to-transparent" />
+                  <div className="h-px flex-1 bg-gradient-to-r from-zinc-200 to-transparent" />
                 </div>
 
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                   {items.map((item) => (
-                    <Card key={item.symbol} className="bg-zinc-900/40 border-zinc-800/80 hover:border-amber-500/30 transition-all duration-300 group overflow-hidden">
-                      <CardHeader className="pb-3 border-b border-zinc-800/50">
+                    <Card
+                      key={item.symbol}
+                      className="bg-white border-zinc-200 hover:border-amber-300 transition-all duration-300 group overflow-hidden shadow-sm hover:shadow-md"
+                    >
+                      <CardHeader className="pb-3 border-b border-zinc-100">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2.5">
-                            <div className="p-2 rounded-lg bg-zinc-800 group-hover:bg-amber-500/10 transition-colors">
+                            <div className="p-2 rounded-lg bg-zinc-50 group-hover:bg-amber-50 transition-colors border border-zinc-100">
                               <SignalIcon signal={item.signal} />
                             </div>
                             <div>
-                              <CardTitle className="text-base text-zinc-100 group-hover:text-amber-500 transition-colors">
+                              <CardTitle className="text-base text-zinc-900 group-hover:text-amber-600 transition-colors">
                                 {item.display}
                               </CardTitle>
-                              <p className="text-[10px] font-mono text-zinc-500">{item.symbol}</p>
+                              <p className="text-[10px] font-mono text-zinc-400">
+                                {item.symbol}
+                              </p>
                             </div>
                           </div>
-                          <Badge 
-                            variant="outline" 
-                            className="text-[10px] font-bold border-zinc-700 bg-zinc-900/50"
-                            style={{ color: item.color, borderColor: item.color + "40" }}
+                          <Badge
+                            variant="outline"
+                            className="text-[10px] font-bold border-zinc-200 bg-zinc-50"
+                            style={{ color: item.color }}
                           >
                             {item.level}
                           </Badge>
@@ -218,30 +225,52 @@ export default function CotPage() {
                       <CardContent className="pt-4 space-y-4">
                         <div className="flex items-end justify-between">
                           <div className="space-y-1">
-                            <p className="text-[10px] uppercase tracking-wider text-zinc-500 font-bold">Net Position</p>
-                            <p className="text-xl font-mono font-bold tracking-tight" style={{ color: item.color }}>
+                            <p className="text-[10px] uppercase tracking-wider text-zinc-500 font-bold">
+                              Net Position
+                            </p>
+                            <p
+                              className="text-xl font-mono font-bold tracking-tight"
+                              style={{ color: item.color }}
+                            >
                               {formatNum(item.net)}
                             </p>
                           </div>
                           <div className="text-right space-y-1">
-                            <p className="text-[10px] uppercase tracking-wider text-zinc-500 font-bold">Z-Score (1Y)</p>
-                            <p className="text-sm font-mono font-bold text-zinc-300">
-                              {item.zScore > 0 ? "+" : ""}{item.zScore}
+                            <p className="text-[10px] uppercase tracking-wider text-zinc-500 font-bold">
+                              Z-Score (1Y)
+                            </p>
+                            <p className="text-sm font-mono font-bold text-zinc-700">
+                              {item.zScore > 0 ? "+" : ""}
+                              {item.zScore}
                             </p>
                           </div>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-2 bg-zinc-950/50 p-2.5 rounded-lg border border-zinc-800/50">
+                        <div className="grid grid-cols-2 gap-2 bg-zinc-50 p-2.5 rounded-lg border border-zinc-100">
                           <div className="space-y-0.5">
-                            <p className="text-[9px] uppercase text-zinc-500 font-medium">Weekly Δ</p>
-                            <p className={`text-xs font-mono font-bold ${item.weekChange > 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                              {item.weekChange > 0 ? '▲' : '▼'} {formatNum(Math.abs(item.weekChange))}
+                            <p className="text-[9px] uppercase text-zinc-500 font-medium">
+                              Weekly Δ
+                            </p>
+                            <p
+                              className={`text-xs font-mono font-bold ${
+                                item.weekChange > 0 ? "text-emerald-600" : "text-rose-600"
+                              }`}
+                            >
+                              {item.weekChange > 0 ? "▲" : "▼"}{" "}
+                              {formatNum(Math.abs(item.weekChange))}
                             </p>
                           </div>
                           <div className="space-y-0.5 text-right">
-                            <p className="text-[9px] uppercase text-zinc-500 font-medium">Monthly Δ</p>
-                            <p className={`text-xs font-mono font-bold ${item.monthChange > 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                              {item.monthChange > 0 ? '▲' : '▼'} {formatNum(Math.abs(item.monthChange))}
+                            <p className="text-[9px] uppercase text-zinc-500 font-medium">
+                              Monthly Δ
+                            </p>
+                            <p
+                              className={`text-xs font-mono font-bold ${
+                                item.monthChange > 0 ? "text-emerald-600" : "text-rose-600"
+                              }`}
+                            >
+                              {item.monthChange > 0 ? "▲" : "▼"}{" "}
+                              {formatNum(Math.abs(item.monthChange))}
                             </p>
                           </div>
                         </div>
@@ -260,29 +289,31 @@ export default function CotPage() {
             ))}
           </div>
 
-          {/* Footer Legend */}
-          <div className="p-6 rounded-2xl bg-zinc-900/50 border border-zinc-800 mt-12">
-            <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500 mb-4">Positioning Extremes Legend</h3>
+          {/* Legend */}
+          <div className="p-6 rounded-2xl bg-white border border-zinc-200 mt-12 shadow-sm">
+            <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500 mb-4">
+              Positioning Extremes Legend
+            </h3>
             <div className="flex flex-wrap gap-x-8 gap-y-4">
               <div className="flex items-center gap-2">
-                <div className="size-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
-                <span className="text-xs text-zinc-400 font-medium">Extreme Long (z ≥ 1.5)</span>
+                <div className="size-2 rounded-full bg-emerald-600" />
+                <span className="text-xs text-zinc-700 font-medium">Extreme Long (z ≥ 1.5)</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="size-2 rounded-full bg-emerald-400 opacity-60" />
-                <span className="text-xs text-zinc-400 font-medium">Long (z ≥ 0.5)</span>
+                <div className="size-2 rounded-full bg-emerald-400" />
+                <span className="text-xs text-zinc-700 font-medium">Long (z ≥ 0.5)</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="size-2 rounded-full bg-zinc-600" />
-                <span className="text-xs text-zinc-400 font-medium">Neutral Positioning</span>
+                <div className="size-2 rounded-full bg-zinc-400" />
+                <span className="text-xs text-zinc-700 font-medium">Neutral Positioning</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="size-2 rounded-full bg-rose-400 opacity-60" />
-                <span className="text-xs text-zinc-400 font-medium">Short (z ≤ -0.5)</span>
+                <div className="size-2 rounded-full bg-rose-400" />
+                <span className="text-xs text-zinc-700 font-medium">Short (z ≤ -0.5)</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="size-2 rounded-full bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.5)]" />
-                <span className="text-xs text-zinc-400 font-medium">Extreme Short (z ≤ -1.5)</span>
+                <div className="size-2 rounded-full bg-rose-600" />
+                <span className="text-xs text-zinc-700 font-medium">Extreme Short (z ≤ -1.5)</span>
               </div>
             </div>
           </div>
