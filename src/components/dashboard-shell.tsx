@@ -2,7 +2,8 @@
 
 import { Fragment, useState } from "react";
 import Link from "next/link";
-import { Activity, History, LogOut, Menu, Settings, X, Zap, Clock } from "lucide-react";
+import { usePathname } from "next/navigation";
+import { Activity, BarChart3, Calculator, History, LogOut, Menu, Settings, X, Zap, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,7 +12,9 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 
 const navItems = [
-  { label: "Scanner", href: "/dashboard", icon: Activity, active: true },
+  { label: "Scanner", href: "/dashboard", icon: Activity },
+  { label: "Calculator", href: "/dashboard/calculator", icon: Calculator },
+  { label: "COT Report", href: "/dashboard/cot", icon: BarChart3 },
   { label: "History", href: "/history", icon: History },
   { label: "Account", href: "/account", icon: Settings },
 ];
@@ -45,6 +48,7 @@ export function DashboardShell() {
   const [loading, setLoading] = useState(false);
   const [levels, setLevels] = useState<Level[]>(mockLevels);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const pathname = usePathname();
 
   const navList = navItems.map((item) => (
     <Link
@@ -52,7 +56,7 @@ export function DashboardShell() {
       href={item.href}
       onClick={() => setSidebarOpen(false)}
       className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-        item.active ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted hover:text-foreground"
+        (pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href))) ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted hover:text-foreground"
       }`}
     >
       <item.icon className="h-4 w-4" />
@@ -281,7 +285,7 @@ export function DashboardShell() {
             key={item.href}
             href={item.href}
             className={`flex flex-1 flex-col items-center gap-0.5 py-2.5 text-[11px] font-medium transition-colors ${
-              item.active ? "text-primary" : "text-muted-foreground"
+              (pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href))) ? "text-primary" : "text-muted-foreground"
             }`}
           >
             <item.icon className="h-5 w-5" />
