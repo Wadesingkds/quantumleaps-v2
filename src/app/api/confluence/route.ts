@@ -1,101 +1,130 @@
-import { NextRequest, NextResponse } from "next/server";
-import { createServerClient } from "@supabase/ssr";
-import { fetchCandles } from "@/lib/market-data";
-import { calculateConfluence } from "@/lib/confluence";
+import { NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
+import { fetchXauusdData } from '@/lib/pinets-api';
 
-export async function GET(request: NextRequest) {
-  const searchParams = request.nextUrl.searchParams;
-  const timeframe = searchParams.get("tf") || "15M";
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
-  // Auth check
-  const supabaseResponse = NextResponse.next({ request });
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll();
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) =>
-            request.cookies.set(name, value)
-          );
-        },
-      },
-    }
-  );
+// Gann Square of 9 levels
+function gannLevels(price: number): number[] {
+  const sqrt = Math.sqrt(price);
+  const levels: number[] = [];
+  for (let i = -4; i <= 4; i++) {
+    if (i === 0) continue;
+    levels.push(Math.round(Math.pow(sqrt + i * 0.25, 2) * 100) / 100);
+  }
+  return levels;
+}
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+// Score confluence: combine Gann proximity + RSI + MACD + BB
+function scoreLevel(level: number, price: number, data: Awaited<ReturnType<typeof fetchXauusdData>>): number {
+  let score = 0;
+  const pct = Math.abs(level - price) / price * 100;
 
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  // Gann proximity (0-4 pts)
+  if (pct < 0.1) score += 4;
+  else if (pct < 0.3) score += 3;
+  else if (pct < 0.5) score += 2;
+  else if (pct < 1.0) score += 1;
+
+  // RSI extreme (0-3 pts)
+  const rsi = data.indicators.rsi?.[0]?.slice(-1)[0]?.value;
+  if (rsi !== undefined) {
+    if (level < price && rsi < 30) score += 3;  // oversold + support
+    else if (level > price && rsi > 70) score += 3; // overbought + resistance
+    else if (rsi < 40 || rsi > 60) score += 1;
   }
 
+  // BB band touch (0-2 pts)
+  const bb = data.indicators.bollingerBands;
+  if (bb && bb.length >= 3) {
+    const lower = bb[2]?.slice(-1)[0]?.value;
+    const upper = bb[1]?.slice(-1)[0]?.value;
+    if (lower && Math.abs(level - lower) / lower < 0.002) score += 2;
+    if (upper && Math.abs(level - upper) / upper < 0.002) score += 2;
+  }
+
+  // EMA alignment (0-1 pt)
+  const ema9 = data.indicators.ema?.[0]?.slice(-1)[0]?.value;
+  const ema21 = data.indicators.ema?.[1]?.slice(-1)[0]?.value;
+  if (ema9 && ema21) {
+    if (level < price && ema9 > ema21) score += 1; // uptrend + support
+    if (level > price && ema9 < ema21) score += 1; // downtrend + resistance
+  }
+
+  return Math.min(score, 10);
+}
+
+export async function GET(request: Request) {
   try {
-    // Fetch real candlestick data
-    const candles = await fetchCandles(timeframe);
+    const { searchParams } = new URL(request.url);
+    const tf = searchParams.get('tf') || '15m';
 
-    if (candles.length < 20) {
-      return NextResponse.json(
-        { error: "Insufficient candle data" },
-        { status: 502 }
-      );
+    // Fetch data from PineTS worker
+    const data = await fetchXauusdData(tf, 200);
+    if (!data.price) {
+      return NextResponse.json({ error: 'No price data' }, { status: 502 });
     }
 
-    // Calculate real confluence levels
-    const levels = calculateConfluence(candles, timeframe);
+    const price = data.price.last;
+    const gLevels = gannLevels(price);
 
-    // Find swing high/low from recent data
-    const recent = candles.slice(-100);
-    let swingHigh = -Infinity, swingLow = Infinity;
-    for (const c of recent) {
-      if (c.high > swingHigh) swingHigh = c.high;
-      if (c.low < swingLow) swingLow = c.low;
-    }
+    // Build confluence levels
+    const levels = gLevels.map(level => ({
+      level,
+      score: scoreLevel(level, price, data),
+      type: level < price ? 'BUY' as const : 'SELL' as const,
+      signals: ['Gann'],
+    })).sort((a, b) => b.score - a.score).slice(0, 5);
 
-    // Determine trend
-    const last20 = candles.slice(-20);
-    const bullish = last20.filter((c) => c.close > c.open).length;
-    const trend = bullish > 12 ? "Bullish" : bullish < 8 ? "Bearish" : "Ranging";
+    // Trend from EMA
+    const ema9 = data.indicators.ema?.[0]?.slice(-1)[0]?.value;
+    const ema21 = data.indicators.ema?.[1]?.slice(-1)[0]?.value;
+    const ema50 = data.indicators.ema?.[2]?.slice(-1)[0]?.value;
+    const trend = ema9 && ema21 && ema50
+      ? (ema9 > ema21 && ema21 > ema50 ? 'BULLISH' : ema9 < ema21 && ema21 < ema50 ? 'BEARISH' : 'NEUTRAL')
+      : 'UNKNOWN';
 
-    // Save scan to database
-    await supabase.from("scans").insert({
-      user_id: user.id,
-      swing_high: swingHigh,
-      swing_low: swingLow,
-      timeframe,
-      levels: levels,
-      created_at: new Date().toISOString(),
+    // RSI
+    const rsi = data.indicators.rsi?.[0]?.slice(-1)[0]?.value ?? null;
+
+    // MACD
+    const macdData = data.indicators.macd;
+    const macd = macdData?.[0]?.slice(-1)[0]?.value ?? null;
+    const macdSignal = macdData?.[1]?.slice(-1)[0]?.value ?? null;
+    const macdHist = macdData?.[2]?.slice(-1)[0]?.value ?? null;
+
+    // ATR
+    const atr = data.indicators.atr?.[0]?.slice(-1)[0]?.value ?? null;
+
+    // Save scan to DB
+    const { error: dbError } = await supabase.from('scans').insert({
+      timeframe: tf,
+      price,
+      trend,
+      levels: levels.length,
+      top_score: levels[0]?.score ?? 0,
     });
+    if (dbError) console.error('DB save error:', dbError);
 
-    return NextResponse.json(
-      {
-        success: true,
-        data: {
-          swing_high: +swingHigh.toFixed(2),
-          swing_low: +swingLow.toFixed(2),
-          timeframe,
-          trend,
-          candle_count: candles.length,
-          last_price: candles[candles.length - 1].close,
-          levels,
-          timestamp: new Date().toISOString(),
-        },
-      },
-      {
-        headers: {
-          "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
-        },
-      }
-    );
-  } catch (err: any) {
-    console.error("Confluence API error:", err);
-    return NextResponse.json(
-      { error: err.message || "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({
+      symbol: 'XAUUSD (PAXG)',
+      timeframe: tf,
+      price,
+      trend,
+      candles: data.candles,
+      rsi,
+      macd: { line: macd, signal: macdSignal, histogram: macdHist },
+      atr,
+      ema: { ema9, ema21, ema50 },
+      levels,
+      timestamp: new Date().toISOString(),
+      source: 'PineTS (Binance PAXG)',
+    });
+  } catch (e: any) {
+    console.error('Confluence error:', e);
+    return NextResponse.json({ error: e.message }, { status: 500 });
   }
 }
