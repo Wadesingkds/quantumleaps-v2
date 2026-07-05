@@ -23,14 +23,17 @@ import {
   Clock,
   ChevronRight,
   Sparkles,
+  ArrowUp,
+  ArrowDown,
 } from "lucide-react";
 
-const TIMEFRAMES = [
-  { value: "15m", label: "15m" },
-  { value: "1h", label: "1H" },
-  { value: "4h", label: "4H" },
-  { value: "1d", label: "1D" },
-];
+// M1–M30 timeframes (all minutes)
+const TIMEFRAMES = Array.from({ length: 30 }, (_, i) => ({
+  value: `${i + 1}m`,
+  label: `M${i + 1}`,
+}));
+
+type SwingDir = "HIGH" | "LOW";
 
 interface GannResult {
   type: "BUY" | "SELL";
@@ -74,31 +77,26 @@ function AlertIcon(props: any) {
 }
 
 export default function CalculatorPage() {
-  const [swingHigh, setSwingHigh] = useState("");
-  const [swingLow, setSwingLow] = useState("");
-  const [timeframe, setTimeframe] = useState("1h");
+  const [swingPrice, setSwingPrice] = useState("");
+  const [swingDir, setSwingDir] = useState<SwingDir>("HIGH");
+  const [timeframe, setTimeframe] = useState("5m");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [data, setData] = useState<GannResponse | null>(null);
 
-  const BINANCE_TF: Record<string, string> = {
-    "15m": "15m", "1h": "1h", "4h": "4h", "1d": "1d",
-  };
-
   async function handleCalc(e: React.FormEvent) {
     e.preventDefault();
-    const high = parseFloat(swingHigh);
-    const low = parseFloat(swingLow);
-    if (!high || !low || high <= low) {
-      setError("Swing High harus lebih besar dari Swing Low");
+    const price = parseFloat(swingPrice);
+    if (!price || price <= 0) {
+      setError("Masukkan harga swing yang valid");
       return;
     }
     setLoading(true);
     setError("");
     try {
-      const tf = BINANCE_TF[timeframe] || "1h";
+      // Fetch candles from Binance (client-side)
       const kRes = await fetch(
-        `https://api.binance.com/api/v3/klines?symbol=PAXGUSDT&interval=${tf}&limit=200`
+        `https://api.binance.com/api/v3/klines?symbol=PAXGUSDT&interval=${timeframe}&limit=500`
       );
       if (!kRes.ok) throw new Error(`Binance ${kRes.status}`);
       const raw = await kRes.json();
@@ -106,10 +104,11 @@ export default function CalculatorPage() {
         time: k[0], open: +k[1], high: +k[2], low: +k[3], close: +k[4],
       }));
 
+      // POST to Gann API
       const res = await fetch("/api/gann", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ high, low, candles }),
+        body: JSON.stringify({ swingPrice: price, swingDir, candles }),
       });
       if (!res.ok) throw new Error(`API ${res.status}`);
       const json = await res.json();
@@ -154,37 +153,68 @@ export default function CalculatorPage() {
             <CardContent className="pt-6">
               <form onSubmit={handleCalc} className="space-y-5">
                 <div className="space-y-4">
+                  {/* Direction toggle */}
                   <div className="space-y-2">
-                    <Label className="text-zinc-700 text-xs font-bold uppercase tracking-tighter">Swing High</Label>
+                    <Label className="text-zinc-700 text-xs font-bold uppercase tracking-tighter">
+                      Swing Type
+                    </Label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setSwingDir("HIGH")}
+                        className={`h-11 rounded-lg border text-sm font-bold transition-all flex items-center justify-center gap-1.5 ${
+                          swingDir === "HIGH"
+                            ? "bg-rose-500 border-rose-500 text-white shadow-sm"
+                            : "bg-white border-zinc-200 text-zinc-600 hover:border-rose-300"
+                        }`}
+                      >
+                        <ArrowUp className="size-4" />
+                        Swing HIGH
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSwingDir("LOW")}
+                        className={`h-11 rounded-lg border text-sm font-bold transition-all flex items-center justify-center gap-1.5 ${
+                          swingDir === "LOW"
+                            ? "bg-emerald-500 border-emerald-500 text-white shadow-sm"
+                            : "bg-white border-zinc-200 text-zinc-600 hover:border-emerald-300"
+                        }`}
+                      >
+                        <ArrowDown className="size-4" />
+                        Swing LOW
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-zinc-700 text-xs font-bold uppercase tracking-tighter">
+                      {swingDir === "HIGH" ? "Swing High Price" : "Swing Low Price"}
+                    </Label>
                     <Input
                       type="number"
                       step="0.01"
-                      placeholder="High price..."
-                      value={swingHigh}
-                      onChange={(e) => setSwingHigh(e.target.value)}
+                      placeholder={swingDir === "HIGH" ? "e.g. 3385.50" : "e.g. 3320.20"}
+                      value={swingPrice}
+                      onChange={(e) => setSwingPrice(e.target.value)}
                       className="bg-zinc-50 border-zinc-200 text-zinc-900 font-mono h-11 focus:ring-amber-500/50 focus:border-amber-500"
                     />
                   </div>
+
                   <div className="space-y-2">
-                    <Label className="text-zinc-700 text-xs font-bold uppercase tracking-tighter">Swing Low</Label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      placeholder="Low price..."
-                      value={swingLow}
-                      onChange={(e) => setSwingLow(e.target.value)}
-                      className="bg-zinc-50 border-zinc-200 text-zinc-900 font-mono h-11 focus:ring-amber-500/50 focus:border-amber-500"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-zinc-700 text-xs font-bold uppercase tracking-tighter">Timeframe</Label>
-                    <Select value={timeframe} onValueChange={(v: string | null) => setTimeframe(v ?? "1h")}>
-                      <SelectTrigger className="bg-zinc-50 border-zinc-200 text-zinc-900 h-11">
+                    <Label className="text-zinc-700 text-xs font-bold uppercase tracking-tighter">
+                      Timeframe
+                    </Label>
+                    <Select value={timeframe} onValueChange={(v: string | null) => setTimeframe(v ?? "5m")}>
+                      <SelectTrigger className="bg-zinc-50 border-zinc-200 text-zinc-900 h-11 font-mono">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent className="bg-white border-zinc-200">
+                      <SelectContent className="bg-white border-zinc-200 max-h-[280px]">
                         {TIMEFRAMES.map((tf) => (
-                          <SelectItem key={tf.value} value={tf.value} className="focus:bg-amber-500 focus:text-white">
+                          <SelectItem
+                            key={tf.value}
+                            value={tf.value}
+                            className="focus:bg-amber-500 focus:text-white font-mono"
+                          >
                             {tf.label}
                           </SelectItem>
                         ))}
@@ -217,7 +247,7 @@ export default function CalculatorPage() {
           <div className="p-4 rounded-xl border border-zinc-200 bg-zinc-50 text-[10px] text-zinc-500 space-y-2">
             <div className="flex items-center gap-2">
               <Clock className="size-3 text-amber-500" />
-              <span>Data source: Binance PAXGUSDT</span>
+              <span>Data source: Binance PAXGUSDT · 500 bars</span>
             </div>
             <div className="flex items-center gap-2">
               <Zap className="size-3 text-amber-500" />
@@ -235,61 +265,106 @@ export default function CalculatorPage() {
               </div>
               <div>
                 <p className="text-zinc-700 font-medium">Belum ada data perhitungan</p>
-                <p className="text-zinc-500 text-xs mt-1 max-w-[240px]">
-                  Masukkan Swing High & Low untuk menemukan zona confluence institusional.
+                <p className="text-zinc-500 text-xs mt-1 max-w-[280px]">
+                  Pilih tipe swing (High/Low) + masukkan harga + timeframe M1–M30.
                 </p>
               </div>
             </div>
           ) : (
             <>
               {/* Stats Bar */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                {[
-                  { label: "Pivot", value: data.pivot.toFixed(2), icon: Target },
-                  { label: "Range", value: (data.swingHigh - data.swingLow).toFixed(2), icon: Sparkles },
-                  { label: "Levels", value: data.results.length, icon: ChevronRight },
-                ].map((s, idx) => (
-                  <div key={idx} className="bg-white border border-zinc-200 p-3.5 rounded-xl space-y-1 shadow-sm">
-                    <p className="text-[9px] uppercase tracking-widest text-zinc-500 font-bold flex items-center gap-1.5">
-                      <s.icon className="size-3 text-amber-500" />
-                      {s.label}
-                    </p>
-                    <p className="text-base font-mono font-bold text-zinc-900">{s.value}</p>
-                  </div>
-                ))}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="bg-white border border-zinc-200 p-3.5 rounded-xl space-y-1 shadow-sm">
+                  <p className="text-[9px] uppercase tracking-widest text-zinc-500 font-bold flex items-center gap-1.5">
+                    <Target className="size-3 text-amber-500" />
+                    Swing
+                  </p>
+                  <p className="text-base font-mono font-bold text-zinc-900">
+                    {data.swingHigh === data.swingLow
+                      ? data.swingHigh
+                      : `${data.swingHigh} / ${data.swingLow}`}
+                  </p>
+                </div>
+                <div className="bg-white border border-zinc-200 p-3.5 rounded-xl space-y-1 shadow-sm">
+                  <p className="text-[9px] uppercase tracking-widest text-zinc-500 font-bold flex items-center gap-1.5">
+                    <Sparkles className="size-3 text-amber-500" />
+                    Pivot
+                  </p>
+                  <p className="text-base font-mono font-bold text-zinc-900">
+                    {data.pivot.toFixed(2)}
+                  </p>
+                </div>
+                <div className="bg-white border border-zinc-200 p-3.5 rounded-xl space-y-1 shadow-sm">
+                  <p className="text-[9px] uppercase tracking-widest text-zinc-500 font-bold flex items-center gap-1.5">
+                    <ChevronRight className="size-3 text-amber-500" />
+                    Range
+                  </p>
+                  <p className="text-base font-mono font-bold text-zinc-900">
+                    {Math.abs(data.swingHigh - data.swingLow).toFixed(2)}
+                  </p>
+                </div>
+                <div className="bg-white border border-zinc-200 p-3.5 rounded-xl space-y-1 shadow-sm">
+                  <p className="text-[9px] uppercase tracking-widest text-zinc-500 font-bold flex items-center gap-1.5">
+                    <Clock className="size-3 text-amber-500" />
+                    TF
+                  </p>
+                  <p className="text-base font-mono font-bold text-zinc-900">
+                    {data.timeframe.toUpperCase()}
+                  </p>
+                </div>
               </div>
 
               {/* BUY Section */}
-              <section className="space-y-3">
-                <div className="flex items-center gap-3">
-                  <TrendingUp className="size-4 text-emerald-600" />
-                  <h2 className="text-sm font-bold uppercase tracking-widest text-zinc-700">
-                    Potential Buy Zones
-                  </h2>
-                  <div className="h-px flex-1 bg-gradient-to-r from-emerald-200 to-transparent" />
-                </div>
-                <div className="grid gap-3">
-                  {data.results.filter((r) => r.type === "BUY").map((r, i) => (
-                    <ResultRow key={i} r={r} idx={i} colorClass="emerald" style={getScoreStyle(r.confluenceScore)} />
-                  ))}
-                </div>
-              </section>
+              {data.results.some((r) => r.type === "BUY") && (
+                <section className="space-y-3">
+                  <div className="flex items-center gap-3">
+                    <TrendingUp className="size-4 text-emerald-600" />
+                    <h2 className="text-sm font-bold uppercase tracking-widest text-zinc-700">
+                      Potential Buy Zones
+                    </h2>
+                    <div className="h-px flex-1 bg-gradient-to-r from-emerald-200 to-transparent" />
+                  </div>
+                  <div className="grid gap-3">
+                    {data.results
+                      .filter((r) => r.type === "BUY")
+                      .map((r, i) => (
+                        <ResultRow
+                          key={`b${i}`}
+                          r={r}
+                          idx={i}
+                          colorClass="emerald"
+                          style={getScoreStyle(r.confluenceScore)}
+                        />
+                      ))}
+                  </div>
+                </section>
+              )}
 
               {/* SELL Section */}
-              <section className="space-y-3 pt-4">
-                <div className="flex items-center gap-3">
-                  <TrendingDown className="size-4 text-rose-600" />
-                  <h2 className="text-sm font-bold uppercase tracking-widest text-zinc-700">
-                    Potential Sell Zones
-                  </h2>
-                  <div className="h-px flex-1 bg-gradient-to-r from-rose-200 to-transparent" />
-                </div>
-                <div className="grid gap-3">
-                  {data.results.filter((r) => r.type === "SELL").map((r, i) => (
-                    <ResultRow key={`s${i}`} r={r} idx={i} colorClass="rose" style={getScoreStyle(r.confluenceScore)} />
-                  ))}
-                </div>
-              </section>
+              {data.results.some((r) => r.type === "SELL") && (
+                <section className="space-y-3 pt-4">
+                  <div className="flex items-center gap-3">
+                    <TrendingDown className="size-4 text-rose-600" />
+                    <h2 className="text-sm font-bold uppercase tracking-widest text-zinc-700">
+                      Potential Sell Zones
+                    </h2>
+                    <div className="h-px flex-1 bg-gradient-to-r from-rose-200 to-transparent" />
+                  </div>
+                  <div className="grid gap-3">
+                    {data.results
+                      .filter((r) => r.type === "SELL")
+                      .map((r, i) => (
+                        <ResultRow
+                          key={`s${i}`}
+                          r={r}
+                          idx={i}
+                          colorClass="rose"
+                          style={getScoreStyle(r.confluenceScore)}
+                        />
+                      ))}
+                  </div>
+                </section>
+              )}
             </>
           )}
         </div>
@@ -298,13 +373,28 @@ export default function CalculatorPage() {
   );
 }
 
-function ResultRow({ r, idx, colorClass, style }: { r: GannResult; idx: number; colorClass: string; style: { bg: string; text: string; border: string } }) {
+function ResultRow({
+  r,
+  idx,
+  colorClass,
+  style,
+}: {
+  r: GannResult;
+  idx: number;
+  colorClass: string;
+  style: { bg: string; text: string; border: string };
+}) {
   return (
-    <div className={`relative overflow-hidden bg-white border ${style.border} rounded-xl p-4 flex items-center gap-4 hover:border-amber-300 transition-all duration-300 shadow-sm hover:shadow-md`}>
-      {/* Grade Indicator */}
+    <div
+      className={`relative overflow-hidden bg-white border ${style.border} rounded-xl p-4 flex items-center gap-4 hover:border-amber-300 transition-all duration-300 shadow-sm hover:shadow-md`}
+    >
       <div
         className={`absolute left-0 top-0 bottom-0 w-1 ${
-          r.grade === "HIGH" ? "bg-emerald-500" : r.grade === "MED" ? "bg-amber-500" : "bg-zinc-200"
+          r.grade === "HIGH"
+            ? "bg-emerald-500"
+            : r.grade === "MED"
+            ? "bg-amber-500"
+            : "bg-zinc-200"
         }`}
       />
 
@@ -347,13 +437,19 @@ function ResultRow({ r, idx, colorClass, style }: { r: GannResult; idx: number; 
       </div>
 
       <div className="text-right flex flex-col items-end gap-1">
-        <div className={`px-3 py-1 rounded-full border ${style.border} ${style.bg} text-[11px] font-black font-mono tracking-tighter ${style.text}`}>
+        <div
+          className={`px-3 py-1 rounded-full border ${style.border} ${style.bg} text-[11px] font-black font-mono tracking-tighter ${style.text}`}
+        >
           SC {r.confluenceScore}
           <span className="opacity-50 ml-0.5 text-[9px]">/10</span>
         </div>
         <span
           className={`text-[10px] font-bold tracking-widest uppercase ${
-            r.grade === "HIGH" ? "text-emerald-600" : r.grade === "MED" ? "text-amber-600" : "text-zinc-400"
+            r.grade === "HIGH"
+              ? "text-emerald-600"
+              : r.grade === "MED"
+              ? "text-amber-600"
+              : "text-zinc-400"
           }`}
         >
           {r.grade} Quality

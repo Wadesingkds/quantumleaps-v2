@@ -7,7 +7,24 @@ function gannLevel(price: number, degrees: number): number {
   return +(rotated * rotated).toFixed(2);
 }
 
-function calcGannLevels(high: number, low: number) {
+// Single swing: derive opposite side from candles (±0.5% if not given)
+function calcGannFromSwing(
+  swingPrice: number,
+  swingDir: "HIGH" | "LOW",
+  candles: { low: number; high: number; close: number }[]
+) {
+  // Derive opposite side from recent candle range if user only gave 1 swing
+  let low: number, high: number;
+  if (swingDir === "HIGH") {
+    high = swingPrice;
+    // use recent lowest low as opposite swing
+    low = Math.min(...candles.slice(-50).map((c) => c.low));
+  } else {
+    low = swingPrice;
+    // use recent highest high as opposite swing
+    high = Math.max(...candles.slice(-50).map((c) => c.high));
+  }
+
   const levels: { price: number; direction: "BUY" | "SELL" }[] = [];
   const buyAngles = [90, 180, 270, 360];
   const sellAngles = [90, 180, 270, 360];
@@ -32,7 +49,7 @@ function calcGannLevels(high: number, low: number) {
     if (below > low * 0.97 && below < high)
       levels.push({ price: below, direction: "BUY" });
   }
-  return levels;
+  return { levels, high, low, pivot: (high + low) / 2 };
 }
 
 // ── SMC Detection ──
@@ -95,7 +112,7 @@ function detectStructure(candles: Candle[], swingLen = 5): SmcSignal[] {
 }
 
 // ── Confluence ──
-const TOLERANCE = 2; // pips (USD for gold)
+const TOLERANCE = 2;
 
 function scoreConfluence(
   gannPrice: number,
@@ -113,29 +130,31 @@ function scoreConfluence(
   return { smcSignals: unique, score, grade };
 }
 
-// ── Route: POST with candles from client ──
+// ── Route: POST with candles + single swing ──
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { high, low, candles } = body as {
-      high: number;
-      low: number;
+    const { swingPrice, swingDir, candles } = body as {
+      swingPrice: number;
+      swingDir: "HIGH" | "LOW";
       candles: Candle[];
     };
 
-    if (!high || !low || high <= low)
-      return NextResponse.json({ error: "Invalid high/low" }, { status: 400 });
+    if (!swingPrice || swingPrice <= 0)
+      return NextResponse.json({ error: "Invalid swing price" }, { status: 400 });
+    if (!swingDir || (swingDir !== "HIGH" && swingDir !== "LOW"))
+      return NextResponse.json({ error: "swingDir must be HIGH or LOW" }, { status: 400 });
     if (!candles || candles.length < 50)
       return NextResponse.json({ error: "Need ≥50 candles" }, { status: 400 });
 
-    const gannLevels = calcGannLevels(high, low);
+    const { levels, high, low, pivot } = calcGannFromSwing(swingPrice, swingDir, candles);
     const allSignals = [
       ...detectFVG(candles),
       ...detectOB(candles),
       ...detectStructure(candles),
     ];
 
-    const results = gannLevels.map((g) => {
+    const results = levels.map((g) => {
       const { smcSignals, score, grade } = scoreConfluence(g.price, allSignals);
       return {
         type: g.direction,
@@ -153,7 +172,8 @@ export async function POST(request: Request) {
     return NextResponse.json({
       swingHigh: high,
       swingLow: low,
-      pivot: (high + low) / 2,
+      pivot,
+      timeframe: "client-supplied",
       results,
     });
   } catch (e: any) {
@@ -164,14 +184,21 @@ export async function POST(request: Request) {
 // ── GET fallback: Gann-only (no SMC) ──
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const high = Number(searchParams.get("high"));
-  const low = Number(searchParams.get("low"));
+  const swingPrice = Number(searchParams.get("swingPrice"));
+  const swingDir = (searchParams.get("swingDir") || "HIGH").toUpperCase() as "HIGH" | "LOW";
 
-  if (!high || !low || high <= low)
-    return NextResponse.json({ error: "Invalid high/low" }, { status: 400 });
+  if (!swingPrice || swingPrice <= 0)
+    return NextResponse.json({ error: "Invalid swing price" }, { status: 400 });
 
-  const gannLevels = calcGannLevels(high, low);
-  const results = gannLevels.map((g) => ({
+  // No candles → use 0.5% range as fallback
+  const high = swingDir === "HIGH" ? swingPrice : swingPrice * 1.005;
+  const low = swingDir === "LOW" ? swingPrice : swingPrice * 0.995;
+
+  const { levels, pivot } = calcGannFromSwing(swingPrice, swingDir, [
+    { low, high, close: swingPrice } as any,
+  ]);
+
+  const results = levels.map((g) => ({
     type: g.direction,
     level: g.price,
     pivot: g.direction === "BUY" ? low : high,
@@ -186,7 +213,7 @@ export async function GET(request: Request) {
   return NextResponse.json({
     swingHigh: high,
     swingLow: low,
-    pivot: (high + low) / 2,
+    pivot,
     results,
     note: "Gann-only (no SMC). POST with candles array for full confluence.",
   });
