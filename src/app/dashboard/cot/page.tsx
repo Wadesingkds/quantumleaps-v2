@@ -17,6 +17,7 @@ import {
   Minus,
   Loader2,
   AlertTriangle,
+  CalendarDays,
 } from "lucide-react";
 
 interface CotItem {
@@ -46,16 +47,17 @@ interface CotData {
 }
 
 function formatNum(n: number) {
-  if (Math.abs(n) >= 1e6) return `${(n / 1e6).toFixed(1)}M`;
-  if (Math.abs(n) >= 1e3) return `${(n / 1e3).toFixed(0)}K`;
+  const abs = Math.abs(n);
+  if (abs >= 1e6) return `${(n / 1e6).toFixed(1)}M`;
+  if (abs >= 1e3) return `${(n / 1e3).toFixed(0)}K`;
   return n.toString();
 }
 
 function SignalIcon({ signal }: { signal: string }) {
   if (signal.includes("long"))
-    return <TrendingUp className="size-4 text-green-400" />;
+    return <TrendingUp className="size-4 text-emerald-400" />;
   if (signal.includes("short"))
-    return <TrendingDown className="size-4 text-red-400" />;
+    return <TrendingDown className="size-4 text-rose-400" />;
   return <Minus className="size-4 text-zinc-500" />;
 }
 
@@ -65,7 +67,7 @@ function MiniSparkline({ data, color }: { data: number[]; color: string }) {
   const max = Math.max(...data);
   const range = max - min || 1;
   const h = 32;
-  const w = data.length * 4;
+  const w = 120;
 
   const points = data
     .map((v, i) => {
@@ -76,23 +78,25 @@ function MiniSparkline({ data, color }: { data: number[]; color: string }) {
     .join(" ");
 
   return (
-    <svg width={w} height={h} className="inline-block">
+    <svg width={w} height={h} className="inline-block overflow-visible">
       <polyline
         points={points}
         fill="none"
         stroke={color}
-        strokeWidth="1.5"
+        strokeWidth="2"
         strokeLinejoin="round"
+        strokeLinecap="round"
+        className="drop-shadow-[0_0_8px_rgba(var(--color-primary-rgb),0.3)]"
       />
     </svg>
   );
 }
 
 const CATEGORY_LABELS: Record<string, string> = {
-  metals: "🪙 Metals",
-  energy: "🛢️ Energy",
-  index: "📊 Indices",
-  rates: "📈 Rates",
+  metals: "🪙 Metals & Gold",
+  energy: "🛢️ Energy Sector",
+  index: "📊 Equity Indices",
+  rates: "📈 Rates & Bonds",
 };
 
 export default function CotPage() {
@@ -122,21 +126,22 @@ export default function CotPage() {
   }, [weeks]);
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="max-w-5xl mx-auto space-y-8 animate-in fade-in duration-500">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-zinc-100 flex items-center gap-2">
-            <BarChart3 className="size-6 text-blue-500" />
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="space-y-1">
+          <h1 className="text-3xl font-bold tracking-tight text-white flex items-center gap-3">
+            <BarChart3 className="size-8 text-amber-500" />
             COT Report
           </h1>
-          <p className="text-zinc-500 text-sm mt-1">
-            Commitments of Traders — smart money positioning
+          <p className="text-zinc-400 text-sm">
+            Commitments of Traders — Institutional Smart Money Positioning
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3 bg-zinc-900/80 p-1.5 rounded-xl border border-zinc-800">
+          <span className="text-xs font-medium text-zinc-500 px-2">History</span>
           <Select value={weeks} onValueChange={(v: string | null) => setWeeks(v ?? "12")}>
-            <SelectTrigger className="w-24 bg-zinc-800 border-zinc-700 text-zinc-100">
+            <SelectTrigger className="w-24 bg-zinc-800 border-zinc-700 text-white font-mono text-sm h-9">
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="bg-zinc-800 border-zinc-700">
@@ -150,145 +155,136 @@ export default function CotPage() {
       </div>
 
       {loading && (
-        <div className="flex items-center justify-center py-20 text-zinc-500">
-          <Loader2 className="animate-spin mr-2 size-4" />
-          Loading CFTC data...
+        <div className="flex flex-col items-center justify-center py-32 text-zinc-500 gap-4">
+          <Loader2 className="animate-spin size-8 text-amber-500" />
+          <p className="text-sm font-medium animate-pulse">Syncing with CFTC Public Records...</p>
         </div>
       )}
 
       {error && (
-        <Card className="bg-red-950/30 border-red-800/50">
-          <CardContent className="pt-6 flex items-center gap-2 text-red-400">
-            <AlertTriangle className="size-4" />
-            {error}
+        <Card className="bg-rose-950/20 border-rose-900/50">
+          <CardContent className="pt-6 flex items-center gap-3 text-rose-400">
+            <AlertTriangle className="size-5 shrink-0" />
+            <div className="text-sm">
+              <p className="font-semibold">Connection Error</p>
+              <p className="opacity-80">{error}</p>
+            </div>
           </CardContent>
         </Card>
       )}
 
       {data && (
         <>
-          {/* As of */}
-          <p className="text-xs text-zinc-600">
-            Data as of {data.asOf} · {data.contractCount} contracts ·{" "}
-            {data.weeks}W lookback
-          </p>
+          <div className="flex items-center gap-2 text-xs font-medium text-zinc-500 bg-zinc-900/50 w-fit px-3 py-1.5 rounded-full border border-zinc-800">
+            <CalendarDays className="size-3 text-amber-500/70" />
+            Update as of: {new Date(data.asOf).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+          </div>
 
-          {Object.entries(data.categories).map(([cat, items]) => (
-            <Card key={cat} className="bg-zinc-900/50 border-zinc-800">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base text-zinc-300">
-                  {CATEGORY_LABELS[cat] || cat}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-1">
-                  {/* Header row */}
-                  <div className="grid grid-cols-[1fr_100px_80px_80px_80px_100px] gap-2 text-[11px] text-zinc-500 font-medium pb-2 border-b border-zinc-800">
-                    <span>Contract</span>
-                    <span className="text-right">Net Spec</span>
-                    <span className="text-right">Z-Score</span>
-                    <span className="text-right">1W Δ</span>
-                    <span className="text-right">1M Δ</span>
-                    <span className="text-right">Trend</span>
-                  </div>
+          <div className="grid gap-8">
+            {Object.entries(data.categories).map(([cat, items]) => (
+              <section key={cat} className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <h2 className="text-lg font-semibold text-zinc-200">
+                    {CATEGORY_LABELS[cat] || cat}
+                  </h2>
+                  <div className="h-px flex-1 bg-gradient-to-r from-zinc-800 to-transparent" />
+                </div>
 
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                   {items.map((item) => (
-                    <div
-                      key={item.symbol}
-                      className="grid grid-cols-[1fr_100px_80px_80px_80px_100px] gap-2 items-center py-2.5 border-b border-zinc-800/50 hover:bg-zinc-800/20"
-                    >
-                      <div className="flex items-center gap-2">
-                        <SignalIcon signal={item.signal} />
-                        <div>
-                          <span className="text-sm font-medium text-zinc-100">
-                            {item.display}
-                          </span>
-                          <span className="text-[10px] text-zinc-600 ml-1.5">
-                            {item.symbol}
-                          </span>
+                    <Card key={item.symbol} className="bg-zinc-900/40 border-zinc-800/80 hover:border-amber-500/30 transition-all duration-300 group overflow-hidden">
+                      <CardHeader className="pb-3 border-b border-zinc-800/50">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2.5">
+                            <div className="p-2 rounded-lg bg-zinc-800 group-hover:bg-amber-500/10 transition-colors">
+                              <SignalIcon signal={item.signal} />
+                            </div>
+                            <div>
+                              <CardTitle className="text-base text-zinc-100 group-hover:text-amber-500 transition-colors">
+                                {item.display}
+                              </CardTitle>
+                              <p className="text-[10px] font-mono text-zinc-500">{item.symbol}</p>
+                            </div>
+                          </div>
+                          <Badge 
+                            variant="outline" 
+                            className="text-[10px] font-bold border-zinc-700 bg-zinc-900/50"
+                            style={{ color: item.color, borderColor: item.color + "40" }}
+                          >
+                            {item.level}
+                          </Badge>
                         </div>
-                      </div>
+                      </CardHeader>
+                      <CardContent className="pt-4 space-y-4">
+                        <div className="flex items-end justify-between">
+                          <div className="space-y-1">
+                            <p className="text-[10px] uppercase tracking-wider text-zinc-500 font-bold">Net Position</p>
+                            <p className="text-xl font-mono font-bold tracking-tight" style={{ color: item.color }}>
+                              {formatNum(item.net)}
+                            </p>
+                          </div>
+                          <div className="text-right space-y-1">
+                            <p className="text-[10px] uppercase tracking-wider text-zinc-500 font-bold">Z-Score (1Y)</p>
+                            <p className="text-sm font-mono font-bold text-zinc-300">
+                              {item.zScore > 0 ? "+" : ""}{item.zScore}
+                            </p>
+                          </div>
+                        </div>
 
-                      <div className="text-right">
-                        <span
-                          className="font-mono text-sm font-medium"
-                          style={{ color: item.color }}
-                        >
-                          {formatNum(item.net)}
-                        </span>
-                      </div>
+                        <div className="grid grid-cols-2 gap-2 bg-zinc-950/50 p-2.5 rounded-lg border border-zinc-800/50">
+                          <div className="space-y-0.5">
+                            <p className="text-[9px] uppercase text-zinc-500 font-medium">Weekly Δ</p>
+                            <p className={`text-xs font-mono font-bold ${item.weekChange > 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                              {item.weekChange > 0 ? '▲' : '▼'} {formatNum(Math.abs(item.weekChange))}
+                            </p>
+                          </div>
+                          <div className="space-y-0.5 text-right">
+                            <p className="text-[9px] uppercase text-zinc-500 font-medium">Monthly Δ</p>
+                            <p className={`text-xs font-mono font-bold ${item.monthChange > 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                              {item.monthChange > 0 ? '▲' : '▼'} {formatNum(Math.abs(item.monthChange))}
+                            </p>
+                          </div>
+                        </div>
 
-                      <div className="text-right">
-                        <Badge
-                          variant="outline"
-                          className="text-[11px] font-mono border-zinc-700"
-                          style={{ color: item.color, borderColor: item.color + "40" }}
-                        >
-                          {item.zScore > 0 ? "+" : ""}
-                          {item.zScore}
-                        </Badge>
-                      </div>
-
-                      <div className="text-right">
-                        <span
-                          className={`text-sm font-mono ${
-                            item.weekChange > 0
-                              ? "text-green-400"
-                              : item.weekChange < 0
-                              ? "text-red-400"
-                              : "text-zinc-500"
-                          }`}
-                        >
-                          {item.weekChange > 0 ? "+" : ""}
-                          {formatNum(item.weekChange)}
-                        </span>
-                      </div>
-
-                      <div className="text-right">
-                        <span
-                          className={`text-sm font-mono ${
-                            item.monthChange > 0
-                              ? "text-green-400"
-                              : item.monthChange < 0
-                              ? "text-red-400"
-                              : "text-zinc-500"
-                          }`}
-                        >
-                          {item.monthChange > 0 ? "+" : ""}
-                          {formatNum(item.monthChange)}
-                        </span>
-                      </div>
-
-                      <div className="text-right">
-                        <MiniSparkline
-                          data={item.series.map((s) => s.net)}
-                          color={item.color}
-                        />
-                      </div>
-                    </div>
+                        <div className="pt-2 flex justify-center h-10">
+                          <MiniSparkline
+                            data={item.series.map((s) => s.net)}
+                            color={item.color}
+                          />
+                        </div>
+                      </CardContent>
+                    </Card>
                   ))}
                 </div>
-              </CardContent>
-            </Card>
-          ))}
+              </section>
+            ))}
+          </div>
 
-          {/* Legend */}
-          <div className="flex flex-wrap gap-4 text-xs text-zinc-500 pt-2">
-            <span>
-              <span className="text-green-400">●</span> Extreme Long (z ≥ 1.5)
-            </span>
-            <span>
-              <span className="text-green-300">●</span> Long (z ≥ 0.5)
-            </span>
-            <span>
-              <span className="text-zinc-400">●</span> Neutral
-            </span>
-            <span>
-              <span className="text-red-300">●</span> Short (z ≤ -0.5)
-            </span>
-            <span>
-              <span className="text-red-400">●</span> Extreme Short (z ≤ -1.5)
-            </span>
+          {/* Footer Legend */}
+          <div className="p-6 rounded-2xl bg-zinc-900/50 border border-zinc-800 mt-12">
+            <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500 mb-4">Positioning Extremes Legend</h3>
+            <div className="flex flex-wrap gap-x-8 gap-y-4">
+              <div className="flex items-center gap-2">
+                <div className="size-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+                <span className="text-xs text-zinc-400 font-medium">Extreme Long (z ≥ 1.5)</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="size-2 rounded-full bg-emerald-400 opacity-60" />
+                <span className="text-xs text-zinc-400 font-medium">Long (z ≥ 0.5)</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="size-2 rounded-full bg-zinc-600" />
+                <span className="text-xs text-zinc-400 font-medium">Neutral Positioning</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="size-2 rounded-full bg-rose-400 opacity-60" />
+                <span className="text-xs text-zinc-400 font-medium">Short (z ≤ -0.5)</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="size-2 rounded-full bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.5)]" />
+                <span className="text-xs text-zinc-400 font-medium">Extreme Short (z ≤ -1.5)</span>
+              </div>
+            </div>
           </div>
         </>
       )}
