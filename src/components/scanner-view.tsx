@@ -1,10 +1,9 @@
 "use client";
 
-import { Fragment, useState } from "react";
+import { Fragment, useState, useEffect } from "react";
 import Link from "next/link";
-import { Activity, LogOut, Menu, Settings, X, Zap, Clock } from "lucide-react";
+import { Activity, LogOut, Menu, Settings, X, Zap, Clock, TrendingUp, TrendingDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -17,13 +16,16 @@ type Level = {
   signals: string[];
 };
 
-// Mock data — replace with API call when backend ready
-const mockLevels: Level[] = [
-  { type: "sell", price: "4,369.66", score: 8, signals: ["FVG", "OB", "BOS"] },
-  { type: "buy", price: "4,306.11", score: 6, signals: ["FVG", "CHoCH"] },
-  { type: "sell", price: "4,412.30", score: 5, signals: ["OB"] },
-  { type: "buy", price: "4,285.00", score: 3, signals: ["FVG"] },
-];
+type ScanResult = {
+  swing_high: number;
+  swing_low: number;
+  timeframe: string;
+  trend: string;
+  candle_count: number;
+  last_price: number;
+  levels: Level[];
+  timestamp: string;
+};
 
 function scoreColor(score: number) {
   if (score >= 7) return "text-signal-buy";
@@ -32,18 +34,42 @@ function scoreColor(score: number) {
 }
 
 export function ScannerView() {
-  const [swingHigh, setSwingHigh] = useState("");
-  const [swingLow, setSwingLow] = useState("");
   const [tf, setTf] = useState("15M");
-  const [auto, setAuto] = useState(true);
   const [loading, setLoading] = useState(false);
-  const [levels, setLevels] = useState<Level[]>(mockLevels);
+  const [error, setError] = useState<string | null>(null);
+  const [result, setResult] = useState<ScanResult | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const navItems = [
     { label: "Scanner", href: "/dashboard/scanner", icon: Activity, active: true },
     { label: "Account", href: "/dashboard/account", icon: Settings },
   ];
+
+  // Auto-scan on mount
+  useEffect(() => {
+    handleScan();
+  }, []);
+
+  function handleScan() {
+    setLoading(true);
+    setError(null);
+
+    fetch(`/api/confluence?tf=${tf}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success) {
+          setResult(data.data);
+        } else {
+          setError(data.error || "Scan failed");
+        }
+      })
+      .catch((err) => {
+        setError(err.message || "Network error");
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }
 
   const navList = navItems.map((item) => (
     <Link
@@ -58,32 +84,6 @@ export function ScannerView() {
       {item.label}
     </Link>
   ));
-
-  function handleScan(e: React.FormEvent) {
-    e.preventDefault();
-    setLoading(true);
-    
-    // Call API
-    fetch(`/api/confluence?high=${swingHigh}&low=${swingLow}&tf=${tf}`)
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.success) {
-          setLevels(data.data.levels);
-        } else {
-          console.error("API error:", data.error);
-          // Fallback to mock data on error
-          setLevels(mockLevels);
-        }
-      })
-      .catch((err) => {
-        console.error("Fetch error:", err);
-        // Fallback to mock data on network error
-        setLevels(mockLevels);
-      })
-      .finally(() => {
-        setLoading(false);
-      });
-  }
 
   return (
     <div className="flex min-h-screen flex-col md:flex-row">
@@ -153,6 +153,9 @@ export function ScannerView() {
             <span className="flex items-center gap-1.5 font-mono">
               <span className="h-1.5 w-1.5 rounded-full bg-signal-buy" /> XAUUSD Live
             </span>
+            {result?.last_price && (
+              <span className="font-mono font-medium text-foreground">${result.last_price.toFixed(2)}</span>
+            )}
           </div>
           <div className="flex items-center gap-2">
             <Badge variant="outline" className="hidden font-mono text-xs md:inline-flex">Free</Badge>
@@ -167,129 +170,129 @@ export function ScannerView() {
           <div className="mx-auto max-w-5xl space-y-6">
             <div>
               <h1 className="text-2xl font-bold tracking-tight">Scanner</h1>
-              <p className="mt-1 text-sm text-muted-foreground">Gann Square of 9 + SMC Confluence</p>
+              <p className="mt-1 text-sm text-muted-foreground">Gann Square of 9 + SMC Confluence — Live Data</p>
             </div>
 
-            {/* Input form */}
-            <form onSubmit={handleScan} className="rounded-xl border border-border bg-card p-3 md:p-5">
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                <div className="space-y-2">
-                  <Label htmlFor="high">Swing High</Label>
-                  <Input id="high" value={swingHigh} onChange={(e) => setSwingHigh(e.target.value)} placeholder="4,400.00" className="font-mono" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="low">Swing Low</Label>
-                  <Input id="low" value={swingLow} onChange={(e) => setSwingLow(e.target.value)} placeholder="4,280.00" className="font-mono" />
-                </div>
-                <div className="space-y-2">
+            {/* Controls */}
+            <div className="rounded-xl border border-border bg-card p-3 md:p-5">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
+                <div className="space-y-2 flex-1">
                   <Label>Timeframe</Label>
                   <Tabs value={tf} onValueChange={setTf}>
                     <TabsList className="grid w-full grid-cols-4">
                       <TabsTrigger value="15M">15M</TabsTrigger>
                       <TabsTrigger value="1H">1H</TabsTrigger>
                       <TabsTrigger value="4H">4H</TabsTrigger>
-                      <TabsTrigger value="D">D</TabsTrigger>
+                      <TabsTrigger value="D">Daily</TabsTrigger>
                     </TabsList>
                   </Tabs>
                 </div>
-                <div className="space-y-2">
-                  <Label>Mode</Label>
-                  <button
-                    type="button"
-                    onClick={() => setAuto(!auto)}
-                    className={`flex h-9 w-full items-center justify-center gap-1.5 rounded-lg border text-sm font-medium transition-colors ${
-                      auto ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground"
-                    }`}
-                  >
-                    <Zap className="h-3.5 w-3.5" /> Auto
-                  </button>
-                </div>
-              </div>
-              <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-                <Button type="submit" disabled={loading} className="sm:w-auto w-full">
-                  {loading ? "Mengambil data..." : "Hitung Confluence"}
+                <Button onClick={handleScan} disabled={loading} className="sm:w-auto w-full">
+                  {loading ? "Scanning..." : "Scan Confluence"}
                 </Button>
-                <Button type="button" variant="outline" className="sm:w-auto w-full">Simpan Config</Button>
               </div>
-            </form>
+              {error && (
+                <p className="mt-3 text-sm text-destructive">{error}</p>
+              )}
+            </div>
 
             {/* Stats */}
-            <div className="grid grid-cols-3 gap-2 md:gap-4">
-              {[
-                { label: "Trend", value: "Bullish", color: "text-signal-buy" },
-                { label: "TF", value: tf, color: "text-foreground" },
-                { label: "Candles", value: "248", color: "text-foreground" },
-              ].map((s) => (
-                <div key={s.label} className="rounded-lg border border-border bg-card p-4">
-                  <div className="text-xs text-muted-foreground">{s.label}</div>
-                  <div className={`mt-1 font-mono text-lg font-semibold ${s.color}`}>{s.value}</div>
+            {result && (
+              <div className="grid grid-cols-2 gap-2 md:grid-cols-4 md:gap-4">
+                <div className="rounded-lg border border-border bg-card p-4">
+                  <div className="text-xs text-muted-foreground">Trend</div>
+                  <div className={`mt-1 flex items-center gap-1 font-mono text-lg font-semibold ${
+                    result.trend === "Bullish" ? "text-signal-buy" : result.trend === "Bearish" ? "text-signal-sell" : "text-foreground"
+                  }`}>
+                    {result.trend === "Bullish" && <TrendingUp className="h-4 w-4" />}
+                    {result.trend === "Bearish" && <TrendingDown className="h-4 w-4" />}
+                    {result.trend}
+                  </div>
                 </div>
-              ))}
-            </div>
+                <div className="rounded-lg border border-border bg-card p-4">
+                  <div className="text-xs text-muted-foreground">Last Price</div>
+                  <div className="mt-1 font-mono text-lg font-semibold">${result.last_price.toFixed(2)}</div>
+                </div>
+                <div className="rounded-lg border border-border bg-card p-4">
+                  <div className="text-xs text-muted-foreground">Swing Range</div>
+                  <div className="mt-1 font-mono text-sm font-semibold">
+                    {result.swing_low.toFixed(0)} — {result.swing_high.toFixed(0)}
+                  </div>
+                </div>
+                <div className="rounded-lg border border-border bg-card p-4">
+                  <div className="text-xs text-muted-foreground">Candles</div>
+                  <div className="mt-1 font-mono text-lg font-semibold">{result.candle_count}</div>
+                </div>
+              </div>
+            )}
 
             {/* Results table */}
             <div className="rounded-xl border border-border bg-card">
               <div className="flex items-center justify-between border-b border-border p-4">
-                <h2 className="font-semibold">Level Confluence</h2>
+                <h2 className="font-semibold">Confluence Levels</h2>
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
                   <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-signal-buy" /> High (7+)</span>
                   <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-primary" /> Med (4-6)</span>
                   <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-muted-foreground" /> Low (1-3)</span>
                 </div>
               </div>
-              <div className="divide-y divide-border">
-                <div className="grid grid-cols-[60px_1fr_auto] gap-2 px-3 py-2 text-xs font-medium text-muted-foreground md:hidden">
-                  <span>Level</span>
-                  <span>Price</span>
-                  <span className="text-right">Score</span>
+
+              {loading ? (
+                <div className="flex items-center justify-center py-16 text-muted-foreground">
+                  <div className="flex items-center gap-2">
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                    Fetching live data + calculating confluence...
+                  </div>
                 </div>
-                <div className="hidden grid-cols-[80px_1fr_1fr_100px] gap-4 px-4 py-2 text-xs font-medium text-muted-foreground md:grid">
-                  <span>Level</span>
-                  <span>Price</span>
-                  <span>Signals</span>
-                  <span className="text-right">Score</span>
-                </div>
-                {levels.map((lvl, i) => (
-                  <Fragment key={i}>
-                  {/* mobile row */}
-                  <div className="grid grid-cols-[60px_1fr_auto] items-start gap-2 px-3 py-2.5 text-sm md:hidden">
-                    <Badge variant={lvl.type === "sell" ? "destructive" : "secondary"} className="w-fit uppercase">
-                      {lvl.type}
-                    </Badge>
-                    <div className="min-w-0">
-                      <span className="font-mono font-medium">{lvl.price}</span>
-                      <div className="mt-1 flex flex-wrap gap-1">
-                        {lvl.signals.map((s) => (
-                          <Badge key={s} variant="outline" className="font-mono text-[10px]">{s}</Badge>
-                        ))}
+              ) : result?.levels && result.levels.length > 0 ? (
+                <div className="divide-y divide-border">
+                  {/* Header */}
+                  <div className="hidden grid-cols-[80px_1fr_1fr_100px] gap-4 px-4 py-2 text-xs font-medium text-muted-foreground md:grid">
+                    <span>Level</span>
+                    <span>Price</span>
+                    <span>Signals</span>
+                    <span className="text-right">Score</span>
+                  </div>
+                  {/* Rows */}
+                  {result.levels.map((lvl, i) => (
+                    <Fragment key={i}>
+                      {/* mobile */}
+                      <div className="grid grid-cols-[60px_1fr_auto] items-start gap-2 px-3 py-2.5 text-sm md:hidden">
+                        <Badge variant={lvl.type === "sell" ? "destructive" : "secondary"} className="w-fit uppercase">{lvl.type}</Badge>
+                        <div className="min-w-0">
+                          <span className="font-mono font-medium">${lvl.price}</span>
+                          <div className="mt-1 flex flex-wrap gap-1">
+                            {lvl.signals.map((s) => <Badge key={s} variant="outline" className="font-mono text-[10px]">{s}</Badge>)}
+                          </div>
+                        </div>
+                        <span className={`text-right font-mono text-base font-bold ${scoreColor(lvl.score)}`}>{lvl.score}<span className="text-xs text-muted-foreground">/10</span></span>
                       </div>
-                    </div>
-                    <span className={`text-right font-mono text-base font-bold ${scoreColor(lvl.score)}`}>
-                      {lvl.score}<span className="text-xs text-muted-foreground">/10</span>
-                    </span>
-                  </div>
-                  {/* desktop row */}
-                  <div className="hidden grid-cols-[80px_1fr_1fr_100px] items-center gap-4 px-4 py-3 text-sm md:grid">
-                    <Badge variant={lvl.type === "sell" ? "destructive" : "secondary"} className="w-fit uppercase">
-                      {lvl.type}
-                    </Badge>
-                    <span className="font-mono font-medium">{lvl.price}</span>
-                    <div className="flex flex-wrap gap-1">
-                      {lvl.signals.map((s) => (
-                        <Badge key={s} variant="outline" className="font-mono text-[10px]">{s}</Badge>
-                      ))}
-                    </div>
-                    <span className={`text-right font-mono text-lg font-bold ${scoreColor(lvl.score)}`}>
-                      {lvl.score}<span className="text-xs text-muted-foreground">/10</span>
-                    </span>
-                  </div>
-                  </Fragment>
-                ))}
-              </div>
+                      {/* desktop */}
+                      <div className="hidden grid-cols-[80px_1fr_1fr_100px] items-center gap-4 px-4 py-3 text-sm md:grid">
+                        <Badge variant={lvl.type === "sell" ? "destructive" : "secondary"} className="w-fit uppercase">{lvl.type}</Badge>
+                        <span className="font-mono font-medium">${lvl.price}</span>
+                        <div className="flex flex-wrap gap-1">
+                          {lvl.signals.map((s) => <Badge key={s} variant="outline" className="font-mono text-[10px]">{s}</Badge>)}
+                        </div>
+                        <span className={`text-right font-mono text-lg font-bold ${scoreColor(lvl.score)}`}>{lvl.score}<span className="text-xs text-muted-foreground">/10</span></span>
+                      </div>
+                    </Fragment>
+                  ))}
+                </div>
+              ) : (
+                <div className="py-16 text-center text-muted-foreground">
+                  {error ? "Error loading data" : "No confluence levels detected"}
+                </div>
+              )}
+
               <Separator />
               <div className="flex items-center gap-2 p-4 text-xs text-muted-foreground">
                 <Clock className="h-3.5 w-3.5" />
-                Data XAUUSD live dari TradingView · Cache 5 menit
+                {result ? (
+                  <>Live XAUUSD data via Yahoo Finance · Gann Square of 9 + SMC · {result.levels.length} levels detected</>
+                ) : (
+                  <>Click "Scan Confluence" to analyze live market data</>
+                )}
               </div>
             </div>
           </div>
