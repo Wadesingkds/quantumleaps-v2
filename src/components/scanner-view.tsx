@@ -65,8 +65,21 @@ export function ScannerView() {
     setLoading(true);
     setError(null);
     try {
-      // Server-side fetch via PineTS (no Binance geo-block)
-      const res = await fetch(`/api/confluence?tf=${tf}&limit=200`);
+      // Client-side fetch from PineTS VPS (browser can reach port 5555)
+      const kRes = await fetch(`http://43.133.145.181:5555/xauusd?tf=${tf}&limit=200`);
+      if (!kRes.ok) throw new Error(`PineTS ${kRes.status}`);
+      const pinets = await kRes.json();
+      if (pinets.error) throw new Error(pinets.error);
+
+      const candles = pinets.data.map((c: any) => ({
+        time: c.time, open: c.open, high: c.high, low: c.low, close: c.close,
+      }));
+
+      const res = await fetch('/api/confluence', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tf, candles }),
+      });
       if (!res.ok) throw new Error(`API ${res.status}`);
       const json = await res.json();
       if (json.error) throw new Error(json.error);
