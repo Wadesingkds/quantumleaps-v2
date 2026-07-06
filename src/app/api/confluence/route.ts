@@ -23,8 +23,20 @@ function makeSyntheticCandles(tf: string, limit: number): Candle[] {
   });
 }
 
+const QA_URL = "https://quantum-api.sayandaktau.my.id";
+
+async function fetchLivePrice(): Promise<number | null> {
+  try {
+    const r = await fetch(`${QA_URL}/price`, { signal: AbortSignal.timeout(5000) });
+    if (!r.ok) return null;
+    const d = await r.json();
+    return d.close ?? null;
+  } catch { return null; }
+}
+
 async function fetchBinanceCandles(tf: string, limit: number): Promise<Candle[]> {
   const resp = await fetch(`https://api.binance.com/api/v3/klines?symbol=PAXGUSDT&interval=${tf}&limit=${limit}`, {
+    headers: { "User-Agent": "quantumleaps/1.0" },
     cache: "no-store",
     signal: AbortSignal.timeout(15000),
   });
@@ -95,7 +107,7 @@ function gannLevels(price: number): number[] {
   return levels;
 }
 
-function buildResponse(candles: Candle[], tf: string) {
+async function buildResponse(candles: Candle[], tf: string) {
   const price = candles[candles.length - 1].close;
   const rsiVal = rsi(candles);
   const macdVal = macd(candles);
@@ -129,8 +141,10 @@ function buildResponse(candles: Candle[], tf: string) {
     levels: levels.length, top_score: levels[0]?.score ?? 0,
   }).then(() => {});
 
+  const livePrice = await fetchLivePrice();
+  const finalPrice = livePrice ?? price;
   return {
-    symbol: "XAUUSD", timeframe: tf, price, trend,
+    symbol: "XAUUSD", timeframe: tf, price: finalPrice, trend,
     candles: candles.length,
     rsi: Math.round(rsiVal * 100) / 100,
     macd: {
@@ -143,7 +157,7 @@ function buildResponse(candles: Candle[], tf: string) {
     bb: { basis: Math.round(bbVal.basis * 100) / 100, upper: Math.round(bbVal.upper * 100) / 100, lower: Math.round(bbVal.lower * 100) / 100 },
     levels,
     timestamp: new Date().toISOString(),
-    source: "PineTS (PAXG/XAUUSD)",
+    source: "OANDA:XAUUSD via quantum-api + PAXG candles",
   };
 }
 
@@ -155,7 +169,7 @@ export async function GET(request: Request) {
     const candles = await fetchBinanceCandles(tf, limit);
     if (candles.length < 50)
       return NextResponse.json({ error: "Need ≥50 candles" }, { status: 400 });
-    return NextResponse.json(buildResponse(candles, tf));
+    return NextResponse.json(await buildResponse(candles, tf));
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 502 });
   }
@@ -167,7 +181,7 @@ export async function POST(request: Request) {
     const { tf, candles } = body as { tf: string; candles: Candle[] };
     if (!candles || candles.length < 50)
       return NextResponse.json({ error: "Need ≥50 candles" }, { status: 400 });
-    return NextResponse.json(buildResponse(candles, tf || "15m"));
+    return NextResponse.json(await buildResponse(candles, tf || "15m"));
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 });
   }

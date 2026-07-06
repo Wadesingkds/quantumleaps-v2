@@ -70,8 +70,20 @@ function makeSyntheticCandles(tf: string, limit: number): Candle[] {
   });
 }
 
+const QA_URL = "https://quantum-api.sayandaktau.my.id";
+
+async function fetchLivePrice(): Promise<number | null> {
+  try {
+    const r = await fetch(`${QA_URL}/price`, { signal: AbortSignal.timeout(5000) });
+    if (!r.ok) return null;
+    const d = await r.json();
+    return d.close ?? null;
+  } catch { return null; }
+}
+
 async function fetchBinanceCandles(tf: string, limit: number): Promise<Candle[]> {
   const resp = await fetch(`https://api.binance.com/api/v3/klines?symbol=PAXGUSDT&interval=${tf}&limit=${limit}`, {
+    headers: { "User-Agent": "quantumleaps/1.0" },
     cache: "no-store",
     signal: AbortSignal.timeout(15000),
   });
@@ -251,7 +263,8 @@ export async function GET(request: Request) {
       };
     }).sort((a, b) => b.confluenceScore - a.confluenceScore);
 
-    return NextResponse.json({ swingHigh: high, swingLow: low, pivot, timeframe: tf, results });
+    const livePrice = await fetchLivePrice();
+    return NextResponse.json({ swingHigh: high, swingLow: low, pivot, timeframe: tf, results, livePrice });
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 502 });
   }
