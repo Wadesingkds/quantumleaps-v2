@@ -230,8 +230,8 @@ export function ScannerView() {
                 Confluence Levels
               </CardTitle>
             </CardHeader>
-            <CardContent className="pt-0 px-0">
-              <table className="w-full">
+            <CardContent className="pt-0 px-0 overflow-x-auto">
+              <table className="w-full min-w-[560px]">
                 <thead>
                   <tr className="text-muted-foreground text-[10px] uppercase tracking-widest font-bold border-b border-border">
                     <th className="px-6 py-3 text-left">Level</th>
