@@ -188,7 +188,14 @@ export async function GET(request: Request) {
   const swingDir = (searchParams.get("swingDir") || "HIGH").toUpperCase() as "HIGH" | "LOW";
 
   if (!swingPrice || swingPrice <= 0)
-    return NextResponse.json({ error: "Invalid swing price" }, { status: 400 });
+    return NextResponse.json(
+      {
+        error: "Invalid swing price",
+        example: "/api/gann?swingPrice=4300&swingDir=HIGH",
+        note: "POST with candles array for full SMC confluence.",
+      },
+      { status: 400 }
+    );
 
   // No candles → use 0.5% range as fallback
   const high = swingDir === "HIGH" ? swingPrice : swingPrice * 1.005;

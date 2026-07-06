@@ -1,3 +1,5 @@
-import { DashboardShell } from "@/components/dashboard-shell";
-export const dynamic = "force-dynamic";
-export default function Page() { return <DashboardShell />; }
+import { redirect } from "next/navigation";
+
+export default function Page() {
+  redirect("/dashboard");
+}

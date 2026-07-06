@@ -6,8 +6,6 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-const PINETS_URL = "http://43.133.145.181:5555";
-
 type Candle = { time: number; open: number; high: number; low: number; close: number };
 
 function rsi(candles: Candle[], period = 14): number {
@@ -122,29 +120,20 @@ function buildResponse(candles: Candle[], tf: string) {
   };
 }
 
-export async function GET(request: Request) {
-  try {
-    const { searchParams } = new URL(request.url);
-    const tf = searchParams.get("tf") || "15m";
-    const limit = parseInt(searchParams.get("limit") || "200", 10);
-
-    const resp = await fetch(`${PINETS_URL}/xauusd?tf=${tf}&limit=${limit}`, {
-      signal: AbortSignal.timeout(20000),
-    });
-    if (!resp.ok) throw new Error(`PineTS ${resp.status}`);
-    const pinets = await resp.json();
-    if (pinets.error) throw new Error(pinets.error);
-
-    const candles: Candle[] = pinets.data.map((c: any) => ({
-      time: c.time, open: c.open, high: c.high, low: c.low, close: c.close,
-    }));
-
-    if (candles.length < 50) throw new Error("Not enough candles from PineTS");
-
-    return NextResponse.json(buildResponse(candles, tf));
-  } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: 500 });
-  }
+export async function GET() {
+  return NextResponse.json(
+    {
+      error: "Use POST with candles",
+      example: {
+        method: "POST",
+        body: {
+          tf: "15m",
+          candles: [{ time: 0, open: 0, high: 0, low: 0, close: 0 }],
+        },
+      },
+    },
+    { status: 405, headers: { Allow: "POST" } }
+  );
 }
 
 export async function POST(request: Request) {
