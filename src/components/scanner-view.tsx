@@ -96,22 +96,22 @@ export function ScannerView() {
   const fmt = (n: number | null | undefined, d = 2) => n != null ? n.toFixed(d) : '—';
 
   return (
-    <div className="max-w-5xl mx-auto space-y-8 animate-in fade-in duration-500">
+    <div className="mx-auto max-w-6xl space-y-8 px-6 py-8 animate-in fade-in duration-500">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="space-y-1">
-          <h1 className="text-3xl font-bold tracking-tight text-zinc-900 flex items-center gap-3">
-            <Activity className="size-8 text-amber-500" />
+          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
+            <Activity className="size-8 text-primary" />
             Confluence Scanner
           </h1>
-          <p className="text-zinc-500 text-sm">
+          <p className="text-sm text-muted-foreground">
             XAUUSD live confluence via Gann Square of 9 + Technical Indicators
           </p>
         </div>
         <Button
           onClick={fetchData}
           disabled={loading}
-          className="bg-amber-500 hover:bg-amber-600 text-zinc-900 font-bold shadow-sm"
+          className=" font-bold shadow-sm"
         >
           {loading ? (
             <Loader2 className="animate-spin mr-2 size-4" />
@@ -123,15 +123,15 @@ export function ScannerView() {
       </div>
 
       {/* Timeframe selector */}
-      <div className="flex gap-2 bg-white p-1.5 rounded-xl border border-zinc-200 shadow-sm w-fit">
+      <div className="flex gap-2 bg-card p-1.5 rounded-xl border border-border shadow-sm w-fit">
         {TIMEFRAMES.map((t) => (
           <button
             key={t.value}
             onClick={() => setTf(t.value)}
             className={`px-3 py-1.5 rounded-lg text-sm font-bold transition-all ${
               tf === t.value
-                ? 'bg-amber-500 text-zinc-900 shadow-sm'
-                : 'text-zinc-500 hover:text-zinc-900 hover:bg-zinc-50'
+                ? 'bg-accent text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground hover:bg-muted/30'
             }`}
           >
             {t.label}
@@ -140,8 +140,8 @@ export function ScannerView() {
       </div>
 
       {error && (
-        <Card className="bg-rose-50 border-rose-200">
-          <CardContent className="pt-6 flex items-center gap-3 text-rose-700">
+        <Card className="bg-signal-sell border-signal-sell">
+          <CardContent className="pt-6 flex items-center gap-3 text-signal-sell">
             <div className="text-sm">
               <p className="font-semibold">Error</p>
               <p className="opacity-80">{error}</p>
@@ -154,86 +154,86 @@ export function ScannerView() {
         <>
           {/* Price + Indicators */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Card className="bg-white border-zinc-200 shadow-sm">
+            <Card className="bg-card border-border shadow-sm">
               <CardContent className="pt-4 space-y-1">
-                <p className="text-[10px] uppercase tracking-widest text-zinc-500 font-bold">Price</p>
-                <p className="text-2xl font-mono font-bold text-zinc-900">${fmt(data.price)}</p>
+                <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Price</p>
+                <p className="text-2xl font-mono font-bold text-foreground">${fmt(data.price)}</p>
               </CardContent>
             </Card>
-            <Card className="bg-white border-zinc-200 shadow-sm">
+            <Card className="bg-card border-border shadow-sm">
               <CardContent className="pt-4 space-y-1">
-                <p className="text-[10px] uppercase tracking-widest text-zinc-500 font-bold">Trend</p>
+                <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Trend</p>
                 <p className={`text-lg font-bold ${
-                  data.trend === 'BULLISH' ? 'text-emerald-600' :
-                  data.trend === 'BEARISH' ? 'text-rose-600' : 'text-amber-600'
+                  data.trend === 'BULLISH' ? 'text-signal-buy' :
+                  data.trend === 'BEARISH' ? 'text-signal-sell' : 'text-primary'
                 }`}>{data.trend}</p>
               </CardContent>
             </Card>
-            <Card className="bg-white border-zinc-200 shadow-sm">
+            <Card className="bg-card border-border shadow-sm">
               <CardContent className="pt-4 space-y-1">
-                <p className="text-[10px] uppercase tracking-widest text-zinc-500 font-bold">RSI</p>
+                <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">RSI</p>
                 <p className={`text-lg font-mono font-bold ${
-                  data.rsi != null && data.rsi < 30 ? 'text-emerald-600' :
-                  data.rsi != null && data.rsi > 70 ? 'text-rose-600' : 'text-zinc-900'
+                  data.rsi != null && data.rsi < 30 ? 'text-signal-buy' :
+                  data.rsi != null && data.rsi > 70 ? 'text-signal-sell' : 'text-foreground'
                 }`}>{fmt(data.rsi)}</p>
               </CardContent>
             </Card>
-            <Card className="bg-white border-zinc-200 shadow-sm">
+            <Card className="bg-card border-border shadow-sm">
               <CardContent className="pt-4 space-y-1">
-                <p className="text-[10px] uppercase tracking-widest text-zinc-500 font-bold">ATR</p>
-                <p className="text-lg font-mono font-bold text-zinc-900">{fmt(data.atr, 3)}</p>
+                <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">ATR</p>
+                <p className="text-lg font-mono font-bold text-foreground">{fmt(data.atr, 3)}</p>
               </CardContent>
             </Card>
           </div>
 
           {/* EMA + MACD + BB */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card className="bg-white border-zinc-200 shadow-sm">
+            <Card className="bg-card border-border shadow-sm">
               <CardHeader className="pb-2">
-                <CardTitle className="text-xs font-bold uppercase tracking-widest text-zinc-500">EMA</CardTitle>
+                <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground">EMA</CardTitle>
               </CardHeader>
               <CardContent className="flex gap-4 text-sm font-mono">
-                <span className="text-zinc-700">9: <b className="text-zinc-900">{fmt(data.ema?.ema9)}</b></span>
-                <span className="text-zinc-700">21: <b className="text-zinc-900">{fmt(data.ema?.ema21)}</b></span>
-                <span className="text-zinc-700">50: <b className="text-zinc-900">{fmt(data.ema?.ema50)}</b></span>
+                <span className="text-foreground">9: <b className="text-foreground">{fmt(data.ema?.ema9)}</b></span>
+                <span className="text-foreground">21: <b className="text-foreground">{fmt(data.ema?.ema21)}</b></span>
+                <span className="text-foreground">50: <b className="text-foreground">{fmt(data.ema?.ema50)}</b></span>
               </CardContent>
             </Card>
-            <Card className="bg-white border-zinc-200 shadow-sm">
+            <Card className="bg-card border-border shadow-sm">
               <CardHeader className="pb-2">
-                <CardTitle className="text-xs font-bold uppercase tracking-widest text-zinc-500">MACD</CardTitle>
+                <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground">MACD</CardTitle>
               </CardHeader>
               <CardContent className="flex gap-4 text-sm font-mono">
-                <span className="text-zinc-700">L: <b className="text-zinc-900">{fmt(data.macd?.line, 4)}</b></span>
-                <span className="text-zinc-700">S: <b className="text-zinc-900">{fmt(data.macd?.signal, 4)}</b></span>
-                <span className={data.macd?.histogram != null && data.macd.histogram > 0 ? 'text-emerald-600' : 'text-rose-600'}>
+                <span className="text-foreground">L: <b className="text-foreground">{fmt(data.macd?.line, 4)}</b></span>
+                <span className="text-foreground">S: <b className="text-foreground">{fmt(data.macd?.signal, 4)}</b></span>
+                <span className={data.macd?.histogram != null && data.macd.histogram > 0 ? 'text-signal-buy' : 'text-signal-sell'}>
                   H: <b>{fmt(data.macd?.histogram, 4)}</b>
                 </span>
               </CardContent>
             </Card>
-            <Card className="bg-white border-zinc-200 shadow-sm">
+            <Card className="bg-card border-border shadow-sm">
               <CardHeader className="pb-2">
-                <CardTitle className="text-xs font-bold uppercase tracking-widest text-zinc-500">Bollinger Bands</CardTitle>
+                <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Bollinger Bands</CardTitle>
               </CardHeader>
               <CardContent className="flex gap-4 text-sm font-mono">
-                <span className="text-zinc-700">B: <b className="text-zinc-900">{fmt(data.bb?.basis)}</b></span>
-                <span className="text-zinc-700">U: <b className="text-zinc-900">{fmt(data.bb?.upper)}</b></span>
-                <span className="text-zinc-700">L: <b className="text-zinc-900">{fmt(data.bb?.lower)}</b></span>
+                <span className="text-foreground">B: <b className="text-foreground">{fmt(data.bb?.basis)}</b></span>
+                <span className="text-foreground">U: <b className="text-foreground">{fmt(data.bb?.upper)}</b></span>
+                <span className="text-foreground">L: <b className="text-foreground">{fmt(data.bb?.lower)}</b></span>
               </CardContent>
             </Card>
           </div>
 
           {/* Confluence Levels */}
-          <Card className="bg-white border-zinc-200 shadow-sm overflow-hidden">
-            <CardHeader className="bg-zinc-50/50 border-b border-zinc-100 pb-3">
-              <CardTitle className="text-sm font-bold uppercase tracking-widest text-zinc-600 flex items-center gap-2">
-                <Target className="size-3.5 text-amber-500" />
+          <Card className="bg-card border-border shadow-sm overflow-hidden">
+            <CardHeader className="bg-muted/30 border-b border-border pb-3">
+              <CardTitle className="text-sm font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                <Target className="size-3.5 text-primary" />
                 Confluence Levels
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-0 px-0">
               <table className="w-full">
                 <thead>
-                  <tr className="text-zinc-500 text-[10px] uppercase tracking-widest font-bold border-b border-zinc-100">
+                  <tr className="text-muted-foreground text-[10px] uppercase tracking-widest font-bold border-b border-border">
                     <th className="px-6 py-3 text-left">Level</th>
                     <th className="px-6 py-3 text-left">Type</th>
                     <th className="px-6 py-3 text-left">Score</th>
@@ -242,15 +242,15 @@ export function ScannerView() {
                 </thead>
                 <tbody>
                   {data.levels.map((lv, i) => (
-                    <tr key={i} className="border-b border-zinc-50 hover:bg-amber-50/30 transition-colors">
-                      <td className="px-6 py-3.5 font-mono font-bold text-zinc-900">${lv.level.toFixed(2)}</td>
+                    <tr key={i} className="border-b border-zinc-50 hover:bg-accent/30 transition-colors">
+                      <td className="px-6 py-3.5 font-mono font-bold text-foreground">${lv.level.toFixed(2)}</td>
                       <td className="px-6 py-3.5">
                         <Badge
                           variant="outline"
                           className={`text-[10px] font-bold ${
                             lv.type === 'BUY'
-                              ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-                              : 'border-rose-200 bg-rose-50 text-rose-700'
+                              ? 'border-signal-buy bg-signal-buy text-signal-buy'
+                              : 'border-signal-sell bg-signal-sell text-signal-sell'
                           }`}
                         >
                           {lv.type}
@@ -261,15 +261,15 @@ export function ScannerView() {
                           <div className="w-20 h-2 bg-zinc-100 rounded-full overflow-hidden">
                             <div
                               className={`h-full rounded-full transition-all ${
-                                lv.score >= 7 ? 'bg-emerald-500' : lv.score >= 4 ? 'bg-amber-500' : 'bg-zinc-300'
+                                lv.score >= 7 ? 'bg-signal-buy0' : lv.score >= 4 ? 'bg-accent' : 'bg-zinc-300'
                               }`}
                               style={{ width: `${lv.score * 10}%` }}
                             />
                           </div>
-                          <span className="text-sm font-mono font-bold text-zinc-700">{lv.score}/10</span>
+                          <span className="text-sm font-mono font-bold text-foreground">{lv.score}/10</span>
                         </div>
                       </td>
-                      <td className="px-6 py-3.5 text-sm font-mono text-zinc-500">
+                      <td className="px-6 py-3.5 text-sm font-mono text-muted-foreground">
                         {((lv.level - data.price) / data.price * 100).toFixed(2)}%
                       </td>
                     </tr>
@@ -280,7 +280,7 @@ export function ScannerView() {
           </Card>
 
           {/* Meta */}
-          <div className="flex justify-between text-xs text-zinc-400">
+          <div className="flex justify-between text-xs text-muted-foreground">
             <span>{data.candles} candles · {data.source}</span>
             <span>{new Date(data.timestamp).toLocaleTimeString()}</span>
           </div>

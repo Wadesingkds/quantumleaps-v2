@@ -128,20 +128,20 @@ export default function CalculatorPage() {
   }
 
   function getScoreStyle(score: number) {
-    if (score >= 8) return { bg: "bg-emerald-50", text: "text-emerald-700", border: "border-emerald-200" };
-    if (score >= 6) return { bg: "bg-amber-50", text: "text-amber-700", border: "border-amber-200" };
-    return { bg: "bg-zinc-50", text: "text-zinc-600", border: "border-zinc-200" };
+    if (score >= 8) return { bg: "bg-signal-buy", text: "text-signal-buy", border: "border-signal-buy" };
+    if (score >= 6) return { bg: "bg-accent", text: "text-primary", border: "border-border" };
+    return { bg: "bg-muted/30", text: "text-muted-foreground", border: "border-border" };
   }
 
   return (
-    <div className="max-w-5xl mx-auto space-y-8 animate-in fade-in duration-500">
+    <div className="mx-auto max-w-6xl space-y-8 px-6 py-8 animate-in fade-in duration-500">
       {/* Header */}
       <div className="space-y-1">
-        <h1 className="text-3xl font-bold tracking-tight text-zinc-900 flex items-center gap-3">
-          <Calculator className="size-8 text-amber-500" />
+        <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
+          <Calculator className="size-8 text-primary" />
           Gann Calculator
         </h1>
-        <p className="text-zinc-500 text-sm">
+        <p className="text-sm text-muted-foreground">
           Institutional price levels via Gann Square of 9 + Smart Money Confluence
         </p>
       </div>
@@ -149,10 +149,10 @@ export default function CalculatorPage() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         {/* Left: Input Form */}
         <div className="lg:col-span-4 space-y-6">
-          <Card className="bg-white border-zinc-200 shadow-sm overflow-hidden">
-            <CardHeader className="bg-zinc-50/50 pb-4 border-b border-zinc-100">
-              <CardTitle className="text-sm font-bold uppercase tracking-widest text-zinc-600 flex items-center gap-2">
-                <Sparkles className="size-3.5 text-amber-500" />
+          <Card className="bg-card border-border shadow-sm overflow-hidden">
+            <CardHeader className="bg-muted/30 pb-4 border-b border-border">
+              <CardTitle className="text-sm font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                <Sparkles className="size-3.5 text-primary" />
                 Parameters
               </CardTitle>
             </CardHeader>
@@ -161,7 +161,7 @@ export default function CalculatorPage() {
                 <div className="space-y-4">
                   {/* Direction toggle */}
                   <div className="space-y-2">
-                    <Label className="text-zinc-700 text-xs font-bold uppercase tracking-tighter">
+                    <Label className="text-foreground text-xs font-bold uppercase tracking-tighter">
                       Swing Type
                     </Label>
                     <div className="grid grid-cols-2 gap-2">
@@ -170,8 +170,8 @@ export default function CalculatorPage() {
                         onClick={() => setSwingDir("HIGH")}
                         className={`h-11 rounded-lg border text-sm font-bold transition-all flex items-center justify-center gap-1.5 ${
                           swingDir === "HIGH"
-                            ? "bg-rose-500 border-rose-500 text-white shadow-sm"
-                            : "bg-white border-zinc-200 text-zinc-600 hover:border-rose-300"
+                            ? "bg-signal-sell border-signal-sell text-foreground shadow-sm"
+                            : "bg-card border-border text-muted-foreground hover:border-signal-sell"
                         }`}
                       >
                         <ArrowUp className="size-4" />
@@ -182,8 +182,8 @@ export default function CalculatorPage() {
                         onClick={() => setSwingDir("LOW")}
                         className={`h-11 rounded-lg border text-sm font-bold transition-all flex items-center justify-center gap-1.5 ${
                           swingDir === "LOW"
-                            ? "bg-emerald-500 border-emerald-500 text-white shadow-sm"
-                            : "bg-white border-zinc-200 text-zinc-600 hover:border-emerald-300"
+                            ? "bg-signal-buy border-signal-buy text-foreground shadow-sm"
+                            : "bg-card border-border text-muted-foreground hover:border-signal-buy"
                         }`}
                       >
                         <ArrowDown className="size-4" />
@@ -193,7 +193,7 @@ export default function CalculatorPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label className="text-zinc-700 text-xs font-bold uppercase tracking-tighter">
+                    <Label className="text-foreground text-xs font-bold uppercase tracking-tighter">
                       {swingDir === "HIGH" ? "Swing High Price" : "Swing Low Price"}
                     </Label>
                     <Input
@@ -202,24 +202,24 @@ export default function CalculatorPage() {
                       placeholder={swingDir === "HIGH" ? "e.g. 3385.50" : "e.g. 3320.20"}
                       value={swingPrice}
                       onChange={(e) => setSwingPrice(e.target.value)}
-                      className="bg-zinc-50 border-zinc-200 text-zinc-900 font-mono h-11 focus:ring-amber-500/50 focus:border-amber-500"
+                      className="bg-muted/30 border-border text-foreground font-mono h-11 focus:ring-primary/50 focus:border-primary"
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label className="text-zinc-700 text-xs font-bold uppercase tracking-tighter">
+                    <Label className="text-foreground text-xs font-bold uppercase tracking-tighter">
                       Timeframe
                     </Label>
                     <Select value={timeframe} onValueChange={(v: string | null) => setTimeframe(v ?? "5m")}>
-                      <SelectTrigger className="bg-zinc-50 border-zinc-200 text-zinc-900 h-11 font-mono">
+                      <SelectTrigger className="bg-muted/30 border-border text-foreground h-11 font-mono">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent className="bg-white border-zinc-200 max-h-[280px]">
+                      <SelectContent className="bg-card border-border max-h-[280px]">
                         {TIMEFRAMES.map((tf) => (
                           <SelectItem
                             key={tf.value}
                             value={tf.value}
-                            className="focus:bg-amber-500 focus:text-white font-mono"
+                            className="focus:bg-accent focus:text-white font-mono"
                           >
                             {tf.label}
                           </SelectItem>
@@ -229,7 +229,7 @@ export default function CalculatorPage() {
                   </div>
                 </div>
                 {error && (
-                  <div className="bg-rose-50 border border-rose-200 p-3 rounded-lg text-rose-700 text-xs font-medium flex items-center gap-2">
+                  <div className="bg-signal-sell border border-signal-sell p-3 rounded-lg text-signal-sell text-xs font-medium flex items-center gap-2">
                     <AlertIcon className="size-3.5" />
                     {error}
                   </div>
@@ -237,7 +237,7 @@ export default function CalculatorPage() {
                 <Button
                   type="submit"
                   disabled={loading}
-                  className="w-full h-12 bg-amber-500 hover:bg-amber-600 text-zinc-900 font-bold text-sm transition-all duration-300 shadow-sm"
+                  className="w-full h-12  font-bold text-sm transition-all duration-300 shadow-sm"
                 >
                   {loading ? (
                     <Loader2 className="animate-spin mr-2 size-4" />
@@ -250,13 +250,13 @@ export default function CalculatorPage() {
             </CardContent>
           </Card>
 
-          <div className="p-4 rounded-xl border border-zinc-200 bg-zinc-50 text-[10px] text-zinc-500 space-y-2">
+          <div className="p-4 rounded-xl border border-border bg-muted/30 text-[10px] text-muted-foreground space-y-2">
             <div className="flex items-center gap-2">
-              <Clock className="size-3 text-amber-500" />
+              <Clock className="size-3 text-primary" />
               <span>Data source: Binance PAXGUSDT · 500 bars</span>
             </div>
             <div className="flex items-center gap-2">
-              <Zap className="size-3 text-amber-500" />
+              <Zap className="size-3 text-primary" />
               <span>Confluence logic v2.4 (Institutional)</span>
             </div>
           </div>
@@ -265,13 +265,13 @@ export default function CalculatorPage() {
         {/* Right: Results */}
         <div className="lg:col-span-8 space-y-6">
           {!data ? (
-            <div className="h-full min-h-[400px] rounded-2xl border border-dashed border-zinc-200 bg-white flex flex-col items-center justify-center text-center p-8 space-y-4">
-              <div className="size-16 rounded-full bg-amber-50 border border-amber-100 flex items-center justify-center">
-                <Calculator className="size-8 text-amber-500" />
+            <div className="h-full min-h-[400px] rounded-2xl border border-dashed border-border bg-card flex flex-col items-center justify-center text-center p-8 space-y-4">
+              <div className="size-16 rounded-full bg-accent border border-border flex items-center justify-center">
+                <Calculator className="size-8 text-primary" />
               </div>
               <div>
-                <p className="text-zinc-700 font-medium">Belum ada data perhitungan</p>
-                <p className="text-zinc-500 text-xs mt-1 max-w-[280px]">
+                <p className="text-foreground font-medium">Belum ada data perhitungan</p>
+                <p className="text-muted-foreground text-xs mt-1 max-w-[280px]">
                   Pilih tipe swing (High/Low) + masukkan harga + timeframe M1–M30.
                 </p>
               </div>
@@ -280,41 +280,41 @@ export default function CalculatorPage() {
             <>
               {/* Stats Bar */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <div className="bg-white border border-zinc-200 p-3.5 rounded-xl space-y-1 shadow-sm">
-                  <p className="text-[9px] uppercase tracking-widest text-zinc-500 font-bold flex items-center gap-1.5">
-                    <Target className="size-3 text-amber-500" />
+                <div className="bg-card border border-border p-3.5 rounded-xl space-y-1 shadow-sm">
+                  <p className="text-[9px] uppercase tracking-widest text-muted-foreground font-bold flex items-center gap-1.5">
+                    <Target className="size-3 text-primary" />
                     Swing
                   </p>
-                  <p className="text-base font-mono font-bold text-zinc-900">
+                  <p className="text-base font-mono font-bold text-foreground">
                     {data.swingHigh === data.swingLow
                       ? data.swingHigh
                       : `${data.swingHigh} / ${data.swingLow}`}
                   </p>
                 </div>
-                <div className="bg-white border border-zinc-200 p-3.5 rounded-xl space-y-1 shadow-sm">
-                  <p className="text-[9px] uppercase tracking-widest text-zinc-500 font-bold flex items-center gap-1.5">
-                    <Sparkles className="size-3 text-amber-500" />
+                <div className="bg-card border border-border p-3.5 rounded-xl space-y-1 shadow-sm">
+                  <p className="text-[9px] uppercase tracking-widest text-muted-foreground font-bold flex items-center gap-1.5">
+                    <Sparkles className="size-3 text-primary" />
                     Pivot
                   </p>
-                  <p className="text-base font-mono font-bold text-zinc-900">
+                  <p className="text-base font-mono font-bold text-foreground">
                     {data.pivot.toFixed(2)}
                   </p>
                 </div>
-                <div className="bg-white border border-zinc-200 p-3.5 rounded-xl space-y-1 shadow-sm">
-                  <p className="text-[9px] uppercase tracking-widest text-zinc-500 font-bold flex items-center gap-1.5">
-                    <ChevronRight className="size-3 text-amber-500" />
+                <div className="bg-card border border-border p-3.5 rounded-xl space-y-1 shadow-sm">
+                  <p className="text-[9px] uppercase tracking-widest text-muted-foreground font-bold flex items-center gap-1.5">
+                    <ChevronRight className="size-3 text-primary" />
                     Range
                   </p>
-                  <p className="text-base font-mono font-bold text-zinc-900">
+                  <p className="text-base font-mono font-bold text-foreground">
                     {Math.abs(data.swingHigh - data.swingLow).toFixed(2)}
                   </p>
                 </div>
-                <div className="bg-white border border-zinc-200 p-3.5 rounded-xl space-y-1 shadow-sm">
-                  <p className="text-[9px] uppercase tracking-widest text-zinc-500 font-bold flex items-center gap-1.5">
-                    <Clock className="size-3 text-amber-500" />
+                <div className="bg-card border border-border p-3.5 rounded-xl space-y-1 shadow-sm">
+                  <p className="text-[9px] uppercase tracking-widest text-muted-foreground font-bold flex items-center gap-1.5">
+                    <Clock className="size-3 text-primary" />
                     TF
                   </p>
-                  <p className="text-base font-mono font-bold text-zinc-900">
+                  <p className="text-base font-mono font-bold text-foreground">
                     {data.timeframe.toUpperCase()}
                   </p>
                 </div>
@@ -324,11 +324,11 @@ export default function CalculatorPage() {
               {data.results.some((r) => r.type === "BUY") && (
                 <section className="space-y-3">
                   <div className="flex items-center gap-3">
-                    <TrendingUp className="size-4 text-emerald-600" />
-                    <h2 className="text-sm font-bold uppercase tracking-widest text-zinc-700">
+                    <TrendingUp className="size-4 text-signal-buy" />
+                    <h2 className="text-sm font-bold uppercase tracking-widest text-foreground">
                       Potential Buy Zones
                     </h2>
-                    <div className="h-px flex-1 bg-gradient-to-r from-emerald-200 to-transparent" />
+                    <div className="h-px flex-1 bg-gradient-to-r from-border to-transparent" />
                   </div>
                   <div className="grid gap-3">
                     {data.results
@@ -350,11 +350,11 @@ export default function CalculatorPage() {
               {data.results.some((r) => r.type === "SELL") && (
                 <section className="space-y-3 pt-4">
                   <div className="flex items-center gap-3">
-                    <TrendingDown className="size-4 text-rose-600" />
-                    <h2 className="text-sm font-bold uppercase tracking-widest text-zinc-700">
+                    <TrendingDown className="size-4 text-signal-sell" />
+                    <h2 className="text-sm font-bold uppercase tracking-widest text-foreground">
                       Potential Sell Zones
                     </h2>
-                    <div className="h-px flex-1 bg-gradient-to-r from-rose-200 to-transparent" />
+                    <div className="h-px flex-1 bg-gradient-to-r from-border to-transparent" />
                   </div>
                   <div className="grid gap-3">
                     {data.results
@@ -392,29 +392,29 @@ function ResultRow({
 }) {
   return (
     <div
-      className={`relative overflow-hidden bg-white border ${style.border} rounded-xl p-4 flex items-center gap-4 hover:border-amber-300 transition-all duration-300 shadow-sm hover:shadow-md`}
+      className={`relative overflow-hidden bg-card border ${style.border} rounded-xl p-4 flex items-center gap-4 hover:border-primary transition-all duration-300 shadow-sm hover:shadow-md`}
     >
       <div
         className={`absolute left-0 top-0 bottom-0 w-1 ${
           r.grade === "HIGH"
-            ? "bg-emerald-500"
+            ? "bg-signal-buy0"
             : r.grade === "MED"
-            ? "bg-amber-500"
-            : "bg-zinc-200"
+            ? "bg-accent"
+            : "bg-muted"
         }`}
       />
 
-      <div className="w-10 h-10 rounded-lg bg-zinc-50 flex items-center justify-center font-mono font-bold text-xs text-zinc-500 border border-zinc-200 uppercase">
+      <div className="w-10 h-10 rounded-lg bg-muted/30 flex items-center justify-center font-mono font-bold text-xs text-muted-foreground border border-border uppercase">
         {r.type[0]}
         {idx + 1}
       </div>
 
       <div className="flex-1">
         <div className="flex items-center gap-3">
-          <span className="text-lg font-mono font-bold text-zinc-900 tracking-tight">
+          <span className="text-lg font-mono font-bold text-foreground tracking-tight">
             {r.level.toLocaleString()}
           </span>
-          <span className="text-[10px] font-mono text-zinc-500 bg-zinc-50 px-1.5 py-0.5 rounded border border-zinc-200">
+          <span className="text-[10px] font-mono text-muted-foreground bg-muted/30 px-1.5 py-0.5 rounded border border-border">
             {r.pctFromPivot > 0 ? "+" : ""}
             {r.pctFromPivot.toFixed(3)}%
           </span>
@@ -427,15 +427,15 @@ function ResultRow({
                 variant="outline"
                 className={`text-[9px] font-bold py-0 h-4 ${
                   colorClass === "emerald"
-                    ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                    : "border-rose-200 bg-rose-50 text-rose-700"
+                    ? "border-signal-buy bg-signal-buy text-signal-buy"
+                    : "border-signal-sell bg-signal-sell text-signal-sell"
                 } uppercase tracking-tighter`}
               >
                 {s}
               </Badge>
             ))
           ) : (
-            <span className="text-[9px] text-zinc-400 font-bold uppercase tracking-widest italic">
+            <span className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest italic">
               No Confluence Found
             </span>
           )}
@@ -452,10 +452,10 @@ function ResultRow({
         <span
           className={`text-[10px] font-bold tracking-widest uppercase ${
             r.grade === "HIGH"
-              ? "text-emerald-600"
+              ? "text-signal-buy"
               : r.grade === "MED"
-              ? "text-amber-600"
-              : "text-zinc-400"
+              ? "text-primary"
+              : "text-muted-foreground"
           }`}
         >
           {r.grade} Quality
