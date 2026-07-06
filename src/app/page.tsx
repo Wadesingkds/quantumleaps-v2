@@ -45,7 +45,7 @@ export default function HomePage() {
               Masuk
             </Button>
             <Button size="sm" render={<Link href="/signup" />}>
-              Daftar Gratis <ArrowRight className="ml-1 h-3.5 w-3.5" />
+              Minta Akses <ArrowRight className="ml-1 h-3.5 w-3.5" />
             </Button>
           </div>
         </div>
@@ -185,26 +185,26 @@ export default function HomePage() {
           <div className="mb-12 max-w-2xl">
             <span className="font-mono text-sm text-primary">03 — Harga</span>
             <h2 className="mt-3 text-3xl font-bold tracking-tight md:text-4xl">
-              Mulai gratis. Upgrade saat butuh.
+              Pilih akses sesuai kebutuhan.
             </h2>
           </div>
           <div className="grid gap-6 md:grid-cols-2 md:max-w-3xl">
             <div className="rounded-xl border border-border bg-card p-8">
-              <h3 className="text-lg font-semibold">Free</h3>
-              <p className="mt-1 text-sm text-muted-foreground">Selamanya gratis</p>
+              <h3 className="text-lg font-semibold">Basic</h3>
+              <p className="mt-1 text-sm text-muted-foreground">Akses awal untuk pengguna terpilih</p>
               <div className="mt-6">
-                <span className="text-4xl font-bold tracking-tight">Rp0</span>
+                <span className="text-4xl font-bold tracking-tight">Beta</span>
               </div>
               <ul className="mt-6 space-y-3 text-sm">
-                {["Kalkulator confluence dasar", "3 konfigurasi tersimpan", "Data real-time (delay 15 menit)", "Timeframe M15—H1"].map((f) => (
+                {["Kalkulator confluence dasar", "3 konfigurasi tersimpan", "Data market terjadwal", "Timeframe M15—H1"].map((f) => (
                   <li key={f} className="flex items-start gap-2">
                     <svg className="mt-0.5 h-4 w-4 shrink-0 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M20 6L9 17l-5-5" /></svg>
                     {f}
                   </li>
                 ))}
               </ul>
-              <Button variant="outline" className="mt-8 w-full" render={<Link href="/signup" />}>
-                Daftar Gratis
+               <Button variant="outline" className="mt-8 w-full" render={<Link href="/signup" />}>
+                Minta Akses
               </Button>
             </div>
             <div className="relative rounded-xl border-2 border-primary bg-card p-8">
@@ -216,7 +216,7 @@ export default function HomePage() {
                 <span className="text-sm text-muted-foreground">/bulan</span>
               </div>
               <ul className="mt-6 space-y-3 text-sm">
-                {["Semua fitur Free", "Unlimited konfigurasi", "Data real-time tanpa delay", "Semua timeframe (M15—Daily)", "Alert harga & notifikasi", "History export PDF"].map((f) => (
+                {["Semua fitur Basic", "Unlimited konfigurasi", "Data real-time tanpa delay", "Semua timeframe (M15—Daily)", "Alert harga & notifikasi", "History export PDF"].map((f) => (
                   <li key={f} className="flex items-start gap-2">
                     <svg className="mt-0.5 h-4 w-4 shrink-0 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M20 6L9 17l-5-5" /></svg>
                     {f}
@@ -224,7 +224,7 @@ export default function HomePage() {
                 ))}
               </ul>
               <Button className="mt-8 w-full" render={<Link href="/signup" />}>
-                Upgrade ke Pro <ArrowRight className="ml-1.5 h-4 w-4" />
+                Minta Akses Pro <ArrowRight className="ml-1.5 h-4 w-4" />
               </Button>
             </div>
           </div>
@@ -238,7 +238,7 @@ export default function HomePage() {
             Siap menemukan edge Anda?
           </h2>
           <p className="mx-auto mt-4 max-w-md text-muted-foreground">
-            Tanpa kartu kredit. Tanpa commit. Hanya analisis.
+            Akses dibuat bertahap untuk menjaga kualitas data dan performa.
           </p>
           <Button size="lg" className="mt-8" render={<Link href="/dashboard" />}>
             Buka Dashboard <ArrowUpRight className="ml-1.5 h-4 w-4" />

@@ -76,9 +76,9 @@ export default function LoginPage() {
             </div>
 
             <p className="mt-6 text-center text-sm text-muted-foreground">
-              Belum punya akun?{" "}
+              Butuh akses?{" "}
               <Link href="/signup" className="font-semibold text-foreground hover:text-primary">
-                Daftar gratis →
+                Minta akses →
               </Link>
             </p>
           </div>

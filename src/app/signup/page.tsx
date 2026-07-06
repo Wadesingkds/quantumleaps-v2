@@ -47,14 +47,14 @@ export default function SignupPage() {
           <div className="flex flex-col justify-center">
             <Badge variant="outline" className="mb-6 w-fit gap-1.5 py-1">
               <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-              Gratis Selamanya
+              Akses Beta
             </Badge>
             <h1 className="text-4xl font-bold tracking-tight md:text-5xl">
-              Mulai Analisis<br />
+              Minta Akses<br />
               <span className="text-primary">Confluence</span>
             </h1>
             <p className="mt-4 max-w-md text-lg text-muted-foreground">
-              Daftar sekarang dan dapatkan akses ke scanner XAUUSD dengan teknologi Gann + SMC.
+              Masuk dengan Google untuk meminta akses ke scanner XAUUSD dengan teknologi Gann + SMC.
             </p>
 
             <div className="mt-8 space-y-4">
@@ -64,12 +64,12 @@ export default function SignupPage() {
                 className="group flex w-full max-w-md items-center justify-center gap-3 rounded-lg border border-border bg-background px-6 py-3.5 text-sm font-medium shadow-sm transition-all hover:border-primary/50 hover:bg-muted hover:shadow disabled:opacity-50"
               >
                 <GoogleIcon className="h-5 w-5" />
-                {loading ? "Mengalihkan..." : "Daftar dengan Google"}
+                {loading ? "Mengalihkan..." : "Minta Akses dengan Google"}
                 {!loading && <ArrowRight className="ml-1 h-4 w-4 transition-transform group-hover:translate-x-0.5" />}
               </button>
 
               <p className="text-xs text-muted-foreground">
-                Dengan mendaftar, kamu setuju dengan{" "}
+                Dengan masuk, kamu setuju dengan{" "}
                 <Link href="/terms" className="font-medium text-primary hover:underline">Syarat Layanan</Link>
                 {" "}dan{" "}
                 <Link href="/privacy" className="font-medium text-primary hover:underline">Kebijakan Privasi</Link>
@@ -85,8 +85,8 @@ export default function SignupPage() {
                   </svg>
                 </div>
                 <div>
-                  <p className="text-sm font-medium">Scanner Gratis</p>
-                  <p className="text-xs text-muted-foreground">Akses unlimited untuk timeframe 15M, 1H, 4H, Daily</p>
+                  <p className="text-sm font-medium">Scanner Beta</p>
+                  <p className="text-xs text-muted-foreground">Akses bertahap untuk timeframe utama</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
@@ -119,7 +119,7 @@ export default function SignupPage() {
             <div className="w-full rounded-xl border border-border bg-card p-6 shadow-lg">
               <div className="mb-5">
                 <h3 className="font-semibold">Apa yang Kamu Dapatkan</h3>
-                <p className="mt-1 text-sm text-muted-foreground">Free tier sudah lebih dari cukup untuk trading harian</p>
+                <p className="mt-1 text-sm text-muted-foreground">Tool inti untuk analisis XAUUSD harian</p>
               </div>
 
               <div className="space-y-4">
@@ -163,9 +163,9 @@ export default function SignupPage() {
               </div>
 
               <div className="mt-5 rounded-lg bg-primary/5 p-4">
-                <p className="text-xs font-medium text-foreground">💎 Upgrade ke Pro</p>
+                <p className="text-xs font-medium text-foreground">💎 Akses Pro</p>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Rp500K/bulan · Auto-scan · Custom alert · API access
+                  Auto-scan · Custom alert · API access
                 </p>
               </div>
             </div>
