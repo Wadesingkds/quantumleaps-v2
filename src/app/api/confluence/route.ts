@@ -8,6 +8,18 @@ const supabase = createClient(
 
 type Candle = { time: number; open: number; high: number; low: number; close: number };
 
+async function fetchBinanceCandles(tf: string, limit: number): Promise<Candle[]> {
+  const resp = await fetch(`https://api.binance.com/api/v3/klines?symbol=PAXGUSDT&interval=${tf}&limit=${limit}`, {
+    cache: "no-store",
+    signal: AbortSignal.timeout(15000),
+  });
+  if (!resp.ok) throw new Error(`Binance ${resp.status}`);
+  const raw = await resp.json();
+  return raw.map((k: any[]) => ({
+    time: k[0], open: +k[1], high: +k[2], low: +k[3], close: +k[4],
+  }));
+}
+
 function rsi(candles: Candle[], period = 14): number {
   let gains = 0, losses = 0;
   for (let i = candles.length - period; i < candles.length; i++) {
@@ -120,20 +132,18 @@ function buildResponse(candles: Candle[], tf: string) {
   };
 }
 
-export async function GET() {
-  return NextResponse.json(
-    {
-      error: "Use POST with candles",
-      example: {
-        method: "POST",
-        body: {
-          tf: "15m",
-          candles: [{ time: 0, open: 0, high: 0, low: 0, close: 0 }],
-        },
-      },
-    },
-    { status: 405, headers: { Allow: "POST" } }
-  );
+export async function GET(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const tf = searchParams.get("tf") || "15m";
+    const limit = Math.min(Number(searchParams.get("limit") || 200), 500);
+    const candles = await fetchBinanceCandles(tf, limit);
+    if (candles.length < 50)
+      return NextResponse.json({ error: "Need ≥50 candles" }, { status: 400 });
+    return NextResponse.json(buildResponse(candles, tf));
+  } catch (e: any) {
+    return NextResponse.json({ error: e.message }, { status: 502 });
+  }
 }
 
 export async function POST(request: Request) {

@@ -55,6 +55,18 @@ function calcGannFromSwing(
 // ── SMC Detection ──
 type Candle = { time: number; open: number; high: number; low: number; close: number };
 
+async function fetchBinanceCandles(tf: string, limit: number): Promise<Candle[]> {
+  const resp = await fetch(`https://api.binance.com/api/v3/klines?symbol=PAXGUSDT&interval=${tf}&limit=${limit}`, {
+    cache: "no-store",
+    signal: AbortSignal.timeout(15000),
+  });
+  if (!resp.ok) throw new Error(`Binance ${resp.status}`);
+  const raw = await resp.json();
+  return raw.map((k: any[]) => ({
+    time: k[0], open: +k[1], high: +k[2], low: +k[3], close: +k[4],
+  }));
+}
+
 interface SmcSignal {
   type: "FVG" | "OB" | "BOS" | "CHoCH";
   price: number;
@@ -191,37 +203,41 @@ export async function GET(request: Request) {
     return NextResponse.json(
       {
         error: "Invalid swing price",
-        example: "/api/gann?swingPrice=4300&swingDir=HIGH",
-        note: "POST with candles array for full SMC confluence.",
+        example: "/api/gann?swingPrice=4300&swingDir=HIGH&tf=15m",
       },
       { status: 400 }
     );
 
-  // No candles → use 0.5% range as fallback
-  const high = swingDir === "HIGH" ? swingPrice : swingPrice * 1.005;
-  const low = swingDir === "LOW" ? swingPrice : swingPrice * 0.995;
+  try {
+    const tf = searchParams.get("tf") || "15m";
+    const candles = await fetchBinanceCandles(tf, 500);
+    if (candles.length < 50)
+      return NextResponse.json({ error: "Need ≥50 candles" }, { status: 400 });
 
-  const { levels, pivot } = calcGannFromSwing(swingPrice, swingDir, [
-    { low, high, close: swingPrice } as any,
-  ]);
+    const { levels, high, low, pivot } = calcGannFromSwing(swingPrice, swingDir, candles);
+    const allSignals = [
+      ...detectFVG(candles),
+      ...detectOB(candles),
+      ...detectStructure(candles),
+    ];
 
-  const results = levels.map((g) => ({
-    type: g.direction,
-    level: g.price,
-    pivot: g.direction === "BUY" ? low : high,
-    pctFromPivot: +(((g.price - (g.direction === "BUY" ? low : high)) / (g.direction === "BUY" ? low : high)) * 100).toFixed(3),
-    rawScore: 0,
-    smcSignals: [] as string[],
-    smcBonus: 0,
-    confluenceScore: 0,
-    grade: "LOW" as const,
-  })).sort((a, b) => a.level - b.level);
+    const results = levels.map((g) => {
+      const { smcSignals, score, grade } = scoreConfluence(g.price, allSignals);
+      return {
+        type: g.direction,
+        level: g.price,
+        pivot: g.direction === "BUY" ? low : high,
+        pctFromPivot: +(((g.price - (g.direction === "BUY" ? low : high)) / (g.direction === "BUY" ? low : high)) * 100).toFixed(3),
+        rawScore: score,
+        smcSignals,
+        smcBonus: smcSignals.length * 3,
+        confluenceScore: score,
+        grade,
+      };
+    }).sort((a, b) => b.confluenceScore - a.confluenceScore);
 
-  return NextResponse.json({
-    swingHigh: high,
-    swingLow: low,
-    pivot,
-    results,
-    note: "Gann-only (no SMC). POST with candles array for full confluence.",
-  });
+    return NextResponse.json({ swingHigh: high, swingLow: low, pivot, timeframe: tf, results });
+  } catch (e: any) {
+    return NextResponse.json({ error: e.message }, { status: 502 });
+  }
 }

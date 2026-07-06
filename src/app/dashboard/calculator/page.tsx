@@ -100,22 +100,7 @@ export default function CalculatorPage() {
     setError("");
     try {
       const tf = TF_MAP[timeframe] || "5m";
-      // Client-side fetch from Binance PAXG (HTTPS, no mixed content)
-      const kRes = await fetch(
-        `https://api.binance.com/api/v3/klines?symbol=PAXGUSDT&interval=${tf}&limit=500`
-      );
-      if (!kRes.ok) throw new Error(`Binance ${kRes.status}`);
-      const raw = await kRes.json();
-      const candles = raw.map((k: number[]) => ({
-        time: k[0], open: +k[1], high: +k[2], low: +k[3], close: +k[4],
-      }));
-
-      // POST to Gann API
-      const res = await fetch("/api/gann", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ swingPrice: price, swingDir, candles }),
-      });
+      const res = await fetch(`/api/gann?swingPrice=${price}&swingDir=${swingDir}&tf=${tf}`);
       if (!res.ok) throw new Error(`API ${res.status}`);
       const json = await res.json();
       if (json.error) throw new Error(json.error);
