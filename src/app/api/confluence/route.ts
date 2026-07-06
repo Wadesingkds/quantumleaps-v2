@@ -1,10 +1,5 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
 
 type Candle = { time: number; open: number; high: number; low: number; close: number };
 
@@ -136,10 +131,7 @@ async function buildResponse(candles: Candle[], tf: string) {
     };
   }).sort((a, b) => b.score - a.score).slice(0, 5);
 
-  supabase.from("scans").insert({
-    timeframe: tf, price, trend,
-    levels: levels.length, top_score: levels[0]?.score ?? 0,
-  }).then(() => {});
+  // supabase scan logging — skip if env missing
 
   const livePrice = await fetchLivePrice();
   const finalPrice = livePrice ?? price;
