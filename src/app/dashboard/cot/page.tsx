@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -18,6 +18,7 @@ import {
   Loader2,
   CalendarDays,
 } from "lucide-react";
+import { PremiumGate } from "@/components/premium-gate";
 
 interface CotItem {
   symbol: string;
@@ -97,7 +98,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   rates: "📈 Rates & Bonds",
 };
 
-export default function CotPage() {
+function CotContent() {
   const [weeks, setWeeks] = useState("12");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -320,5 +321,15 @@ export default function CotPage() {
         </>
       )}
     </div>
+  );
+}
+
+export default function CotPage() {
+  return (
+    <Suspense fallback={<div className="p-16 text-center text-muted-foreground">Memuat...</div>}>
+      <PremiumGate>
+        <CotContent />
+      </PremiumGate>
+    </Suspense>
   );
 }

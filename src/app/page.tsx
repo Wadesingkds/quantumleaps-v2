@@ -44,7 +44,7 @@ export default function HomePage() {
             <Button variant="ghost" size="sm" render={<Link href="/login" />} className="hidden sm:inline-flex">
               Masuk
             </Button>
-            <Button size="sm" render={<Link href="/signup" />}>
+            <Button size="sm" render={<Link href="/pricing" />}>
               Minta Akses <ArrowRight className="ml-1 h-3.5 w-3.5" />
             </Button>
           </div>
@@ -71,7 +71,7 @@ export default function HomePage() {
               <Button size="lg" render={<Link href="/signup" />}>
                 Mulai Analisis <ArrowRight className="ml-1.5 h-4 w-4" />
               </Button>
-              <Button size="lg" variant="outline" render={<Link href="/dashboard" />}>
+              <Button size="lg" variant="outline" render={<Link href="/pricing" />}>
                 Buka Dashboard
               </Button>
             </div>
@@ -223,7 +223,7 @@ export default function HomePage() {
                   </li>
                 ))}
               </ul>
-              <Button className="mt-8 w-full" render={<Link href="/signup" />}>
+              <Button className="mt-8 w-full" render={<Link href="/pricing" />}>
                 Minta Akses Pro <ArrowRight className="ml-1.5 h-4 w-4" />
               </Button>
             </div>

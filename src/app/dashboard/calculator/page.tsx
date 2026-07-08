@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -24,6 +24,7 @@ import {
   ArrowUp,
   RefreshCw,
 } from "lucide-react";
+import { PremiumGate } from "@/components/premium-gate";
 
 type GannLevel = {
   label: string;
@@ -57,7 +58,7 @@ function fmt(n: number | null | undefined, d = 2): string {
   return n != null ? n.toFixed(d) : "—";
 }
 
-export default function GannCalculatorPage() {
+function GannCalculatorContent() {
   const [high, setHigh] = useState("4369.66");
   const [low, setLow] = useState("4306.11");
   const [tf, setTf] = useState("15m");
@@ -307,5 +308,15 @@ export default function GannCalculatorPage() {
         </>
       )}
     </div>
+  );
+}
+
+export default function GannCalculatorPage() {
+  return (
+    <Suspense fallback={<div className="p-16 text-center text-muted-foreground">Memuat...</div>}>
+      <PremiumGate>
+        <GannCalculatorContent />
+      </PremiumGate>
+    </Suspense>
   );
 }

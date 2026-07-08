@@ -9,7 +9,7 @@ export async function middleware(request: NextRequest) {
   const isProtected = protectedPaths.some((p) => pathname.startsWith(p));
   const isAdmin = adminPaths.some((p) => pathname.startsWith(p));
 
-  if (!isProtected) return NextResponse.next();
+  if (!isProtected && !isAdmin) return NextResponse.next();
 
   let supabaseResponse = NextResponse.next({ request });
 
@@ -46,19 +46,35 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Admin check: query profile for is_admin
   if (isAdmin) {
     const { data: profile } = await supabase
       .from("profiles")
       .select("is_admin")
       .eq("id", user.id)
       .single();
-
     if (!profile?.is_admin) {
       const url = request.nextUrl.clone();
       url.pathname = "/dashboard";
       return NextResponse.redirect(url);
     }
+    return supabaseResponse;
+  }
+
+  // Premium gate: free users (logged in) → /pricing
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("tier, is_pro")
+    .eq("id", user.id)
+    .single();
+
+  const isPro =
+    profile?.is_pro || profile?.tier === "pro" || profile?.tier === "admin";
+
+  if (!isPro) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/pricing";
+    url.searchParams.set("from", pathname);
+    return NextResponse.redirect(url);
   }
 
   return supabaseResponse;
