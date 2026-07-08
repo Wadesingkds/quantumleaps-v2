@@ -1,9 +1,12 @@
-"use client";
+"use client"
 
 import Link from "next/link";
+import { useEffect } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { Activity, BarChart3, Calculator, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { toast } from "sonner";
 
 const actions = [
   {
@@ -30,6 +33,17 @@ const actions = [
 ];
 
 export function DashboardOverview() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (searchParams.get("payment") === "success") {
+      toast.success("Pembayaran berhasil! Akses Pro sudah aktif. 🎉");
+      // Clear query param so refresh doesn't re-trigger
+      router.replace("/dashboard");
+    }
+  }, [searchParams, router]);
+
   return (
     <div className="mx-auto max-w-6xl space-y-6 p-6">
       <div>
