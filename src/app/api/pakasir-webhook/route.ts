@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getAdminClient } from "@/lib/supabase-admin";
-import { verifyTransaction, PAKASIR_SLUG } from "@/lib/pakasir";
+import { verifyTransaction, PAKASIR_SLUG, isSandbox } from "@/lib/pakasir";
 
 export const runtime = "nodejs";
 
@@ -77,13 +77,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: true, status: "already_processed" });
     }
 
-    // Verify with Pakasir (don't trust webhook blindly)
-    const verified = await verifyTransaction(order_id, payment.amount);
-    if (!verified) {
-      return NextResponse.json(
-        { error: "Payment not verified by Pakasir" },
-        { status: 400 }
-      );
+    // Verify with Pakasir (don't trust webhook blindly).
+    // In sandbox mode, skip external verification (no real transaction exists).
+    if (!isSandbox()) {
+      const verified = await verifyTransaction(order_id, payment.amount);
+      if (!verified) {
+        return NextResponse.json(
+          { error: "Payment not verified by Pakasir" },
+          { status: 400 }
+        );
+      }
     }
 
     const completedAt = completed_at || new Date().toISOString();

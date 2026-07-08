@@ -58,20 +58,24 @@ export function checkoutUrl(orderId: string, amount: number): string {
   )}`;
 }
 
-// Sandbox-only: trigger webhook server-side so user becomes Pro immediately.
+// Sandbox-only: simulate a successful payment by calling OUR OWN webhook
+// (Pakasir sandbox does not auto-deliver webhooks unless configured).
+// This exercises the full verify -> update path end-to-end.
 export async function simulatePayment(
   orderId: string,
   amount: number
 ): Promise<void> {
   if (PAKASIR_MODE !== "sandbox") return;
-  await fetch(`${PAKASIR_BASE}/api/paymentsimulation`, {
+  const webhookUrl = `${WEBSITE_URL}/api/pakasir-webhook`;
+  await fetch(webhookUrl, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       project: PAKASIR_SLUG,
       order_id: orderId,
+      status: "completed",
       amount,
-      api_key: PAKASIR_API_KEY,
+      completed_at: new Date().toISOString(),
     }),
   });
 }
