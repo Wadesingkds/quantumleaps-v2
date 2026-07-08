@@ -66,7 +66,7 @@ export function calculateConfluence(candles: Candle[], timeframe: string): Confl
     score = Math.min(score, 10);
 
     levels.push({
-      type: gann.direction,
+      type: gann.type === "BUY" ? "buy" : "sell",
       price: gann.price.toFixed(2),
       score,
       signals: [...signalTypes],

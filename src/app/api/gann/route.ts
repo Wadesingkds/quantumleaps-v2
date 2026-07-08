@@ -1,271 +1,251 @@
 import { NextResponse } from "next/server";
 
-// ── Gann Square of 9 ──
-function gannLevel(price: number, degrees: number): number {
-  const sqrt = Math.sqrt(price);
-  const rotated = sqrt + degrees / 360;
-  return +(rotated * rotated).toFixed(2);
+// ── Gann Square of 9 (Fixed-Increment) ──
+const INCREMENTS = [0.125, 0.175, 0.250];
+
+function calcGann(high: number, low: number) {
+  const levels: { label: string; level: number }[] = [];
+  for (const inc of INCREMENTS) {
+    levels.push({ label: `BUY${INCREMENTS.indexOf(inc) + 1}`, level: +Math.pow(Math.sqrt(high) - inc, 2).toFixed(2) });
+    levels.push({ label: `SELL${INCREMENTS.indexOf(inc) + 1}`, level: +Math.pow(Math.sqrt(low) + inc, 2).toFixed(2) });
+  }
+  return levels;
 }
 
-// Single swing: derive opposite side from candles (±0.5% if not given)
-function calcGannFromSwing(
-  swingPrice: number,
-  swingDir: "HIGH" | "LOW",
-  candles: { low: number; high: number; close: number }[]
-) {
-  // Derive opposite side from recent candle range if user only gave 1 swing
-  let low: number, high: number;
-  if (swingDir === "HIGH") {
-    high = swingPrice;
-    // use recent lowest low as opposite swing
-    low = Math.min(...candles.slice(-50).map((c) => c.low));
-  } else {
-    low = swingPrice;
-    // use recent highest high as opposite swing
-    high = Math.max(...candles.slice(-50).map((c) => c.high));
-  }
-
-  const levels: { price: number; direction: "BUY" | "SELL" }[] = [];
-  const buyAngles = [90, 180, 270, 360];
-  const sellAngles = [90, 180, 270, 360];
-
-  for (const angle of sellAngles) {
-    const p = gannLevel(high, angle);
-    if (p > high && p < high * 1.05)
-      levels.push({ price: p, direction: "SELL" });
-  }
-  for (const angle of buyAngles) {
-    const p = gannLevel(low, -angle);
-    if (p < low && p > low * 0.95)
-      levels.push({ price: p, direction: "BUY" });
-  }
-  // mid-range
-  const mid = (high + low) / 2;
-  for (const angle of [45, 135, 225, 315]) {
-    const above = gannLevel(mid, angle);
-    const below = gannLevel(mid, -angle);
-    if (above > low && above < high * 1.03)
-      levels.push({ price: above, direction: "SELL" });
-    if (below > low * 0.97 && below < high)
-      levels.push({ price: below, direction: "BUY" });
-  }
-  return { levels, high, low, pivot: (high + low) / 2 };
-}
-
-// ── SMC Detection ──
+// ── Candle & Signal Types ──
 type Candle = { time: number; open: number; high: number; low: number; close: number };
+interface SmcSignal { type: "FVG" | "OB" | "BOS" | "CHoCH"; price: number; direction: "bullish" | "bearish"; }
 
-
-function makeSyntheticCandles(tf: string, limit: number): Candle[] {
-  const stepMs = tf.endsWith("h") ? Number(tf.slice(0, -1)) * 3600000 : Number(tf.slice(0, -1)) * 60000;
-  const now = Date.now();
-  let close = 4130;
-  return Array.from({ length: limit }, (_, i) => {
-    const wave = Math.sin(i / 7) * 8 + Math.cos(i / 17) * 14;
-    const open = close;
-    close = 4130 + wave + i * 0.08;
-    const high = Math.max(open, close) + 2.5;
-    const low = Math.min(open, close) - 2.5;
-    return { time: now - (limit - i) * stepMs, open, high, low, close };
-  });
+// ── FVG Detection ──
+function detectFVG(candles: Candle[]): SmcSignal[] {
+  const signals: SmcSignal[] = [];
+  for (let i = 1; i < candles.length - 1; i++) {
+    if (candles[i - 1].high < candles[i + 1].low) {
+      signals.push({ type: "FVG", price: (candles[i - 1].high + candles[i + 1].low) / 2, direction: "bullish" });
+    } else if (candles[i - 1].low > candles[i + 1].high) {
+      signals.push({ type: "FVG", price: (candles[i - 1].low + candles[i + 1].high) / 2, direction: "bearish" });
+    }
+  }
+  return signals;
 }
 
+// ── Order Block Detection ──
+function detectOB(candles: Candle[]): SmcSignal[] {
+  const signals: SmcSignal[] = [];
+  for (let i = 1; i < candles.length - 4; i++) {
+    if (candles[i].close < candles[i].open) {
+      // Bearish candle → bullish OB at its high
+      if (candles[i + 1].close > candles[i].high)
+        signals.push({ type: "OB", price: candles[i].high, direction: "bullish" });
+    } else {
+      // Bullish candle → bearish OB at its low
+      if (candles[i + 1].close < candles[i].low)
+        signals.push({ type: "OB", price: candles[i].low, direction: "bearish" });
+    }
+  }
+  return signals;
+}
+
+// ── Market Structure ──
+function detectStructure(candles: Candle[]): SmcSignal[] {
+  const signals: SmcSignal[] = [];
+  const swingLen = 5;
+  let trend = "";
+  let lastSwingHigh = 0;
+  let lastSwingLow = Infinity;
+
+  for (let i = swingLen; i < candles.length - swingLen; i++) {
+    const c = candles[i];
+    const isSwingHigh = candles.slice(i - swingLen, i).every((x) => x.high <= c.high) &&
+      candles.slice(i + 1, i + swingLen + 1).every((x) => x.high <= c.high);
+    const isSwingLow = candles.slice(i - swingLen, i).every((x) => x.low >= c.low) &&
+      candles.slice(i + 1, i + swingLen + 1).every((x) => x.low >= c.low);
+
+    if (isSwingHigh) {
+      if (lastSwingHigh && c.high > lastSwingHigh) {
+        signals.push({ type: trend === "up" ? "BOS" : "CHoCH", price: c.high, direction: "bullish" });
+        trend = "up";
+      }
+      lastSwingHigh = c.high;
+      if (!trend) trend = "up";
+    }
+    if (isSwingLow) {
+      if (lastSwingLow !== Infinity && c.low < lastSwingLow) {
+        signals.push({ type: trend === "down" ? "BOS" : "CHoCH", price: c.low, direction: "bearish" });
+        trend = "down";
+      }
+      lastSwingLow = c.low;
+      if (!trend) trend = "down";
+    }
+  }
+  return signals;
+}
+
+// ── Live Price from quantum-api ──
 const QA_URL = "https://quantum-api.sayandaktau.my.id";
+const TV_SYMBOL = "OANDA:XAUUSD";
+const TOLERANCE = 2;
 
 async function fetchLivePrice(): Promise<number | null> {
   try {
     const r = await fetch(`${QA_URL}/price`, { signal: AbortSignal.timeout(5000) });
-    if (!r.ok) return null;
-    const d = await r.json();
-    return d.close ?? null;
+    return r.ok ? (await r.json()).close ?? null : null;
   } catch { return null; }
 }
 
-async function fetchBinanceCandles(tf: string, limit: number): Promise<Candle[]> {
-  const resp = await fetch(`https://api.binance.com/api/v3/klines?symbol=PAXGUSDT&interval=${tf}&limit=${limit}`, {
-    headers: { "User-Agent": "quantumleaps/1.0" },
-    cache: "no-store",
-    signal: AbortSignal.timeout(15000),
+// ── Fetch Candles from TradingView ──
+async function fetchTVCandles(tf: string, limit: number): Promise<Candle[]> {
+  const TradingView = require("@mathieuc/tradingview");
+
+  const candleMap: Record<string, string> = {
+    "1m": "1", "5m": "5", "15m": "15", "30m": "30",
+    "60": "60", "240": "240", "1h": "60", "4h": "240",
+  };
+  const tvTf = candleMap[tf] || "60";
+
+  return new Promise((resolve, reject) => {
+    const client = new TradingView.Client();
+    const chart = new client.Session.Chart();
+    chart.setMarket(TV_SYMBOL, { timeframe: tvTf, range: limit });
+
+    chart.onError((...err: any[]) => { client.end(); reject(new Error(err.join(" "))); });
+
+    const timeout = setTimeout(() => {
+      client.end();
+      reject(new Error("Timeout fetching TradingView candles"));
+    }, 15000);
+
+    chart.onUpdate(() => {
+      if (chart.periods && chart.periods.length >= 10) {
+        clearTimeout(timeout);
+        const candles: Candle[] = chart.periods.map((p: any) => ({
+          time: p.time,
+          open: p.open,
+          high: p.max,
+          low: p.min,
+          close: p.close,
+        }));
+        client.end();
+        resolve(candles);
+      }
+    });
   });
-  if (!resp.ok) return makeSyntheticCandles(tf, limit);
-  const raw = await resp.json();
-  return raw.map((k: any[]) => ({
-    time: k[0], open: +k[1], high: +k[2], low: +k[3], close: +k[4],
-  }));
 }
 
-interface SmcSignal {
-  type: "FVG" | "OB" | "BOS" | "CHoCH";
-  price: number;
-  direction: "bullish" | "bearish";
-}
-
-function detectFVG(candles: Candle[]): SmcSignal[] {
-  const signals: SmcSignal[] = [];
-  for (let i = 2; i < candles.length; i++) {
-    if (candles[i - 2].high < candles[i].low)
-      signals.push({ type: "FVG", price: (candles[i - 2].high + candles[i].low) / 2, direction: "bullish" });
-    if (candles[i - 2].low > candles[i].high)
-      signals.push({ type: "FVG", price: (candles[i - 2].low + candles[i].high) / 2, direction: "bearish" });
-  }
-  return signals;
-}
-
-function detectOB(candles: Candle[]): SmcSignal[] {
-  const signals: SmcSignal[] = [];
-  for (let i = 1; i < candles.length - 1; i++) {
-    const curr = candles[i];
-    const next = candles[i + 1];
-    if (curr.close < curr.open && next.close > curr.high)
-      signals.push({ type: "OB", price: curr.high, direction: "bullish" });
-    if (curr.close > curr.open && next.close < curr.low)
-      signals.push({ type: "OB", price: curr.low, direction: "bearish" });
-  }
-  return signals;
-}
-
-function detectStructure(candles: Candle[], swingLen = 5): SmcSignal[] {
-  const signals: SmcSignal[] = [];
-  let lastHigh = -Infinity, lastLow = Infinity;
-
-  for (let i = swingLen; i < candles.length - swingLen; i++) {
-    const isSwingHigh = candles.slice(i - swingLen, i + swingLen + 1).every(
-      (c, j) => j === swingLen || c.high <= candles[i].high
-    );
-    const isSwingLow = candles.slice(i - swingLen, i + swingLen + 1).every(
-      (c, j) => j === swingLen || c.low >= candles[i].low
-    );
-
-    if (isSwingHigh) {
-      if (candles[i].high > lastHigh && lastHigh > 0)
-        signals.push({ type: "BOS", price: candles[i].high, direction: "bullish" });
-      lastHigh = candles[i].high;
-    }
-    if (isSwingLow) {
-      if (candles[i].low < lastLow && lastLow < Infinity)
-        signals.push({ type: "BOS", price: candles[i].low, direction: "bearish" });
-      lastLow = candles[i].low;
-    }
-  }
-  return signals;
-}
-
-// ── Confluence ──
-const TOLERANCE = 2;
-
-function scoreConfluence(
-  gannPrice: number,
-  signals: SmcSignal[]
-): { smcSignals: string[]; score: number; grade: "HIGH" | "MED" | "LOW" } {
-  const matched: string[] = [];
-  for (const s of signals) {
-    if (Math.abs(s.price - gannPrice) <= TOLERANCE) {
-      matched.push(`${s.type} ${s.direction === "bullish" ? "↑" : "↓"}`);
-    }
-  }
-  const unique = [...new Set(matched)];
-  const score = Math.min(10, unique.length * 3 + (unique.length > 1 ? 2 : 0));
-  const grade = score >= 7 ? "HIGH" : score >= 4 ? "MED" : "LOW";
-  return { smcSignals: unique, score, grade };
-}
-
-// ── Route: POST with candles + single swing ──
+// ── POST: calculate Gann + confluence ──
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { swingPrice, swingDir, candles } = body as {
-      swingPrice: number;
-      swingDir: "HIGH" | "LOW";
-      candles: Candle[];
-    };
+    const { high, low, tf = "15m" } = body as { high: number; low: number; tf: string };
 
-    if (!swingPrice || swingPrice <= 0)
-      return NextResponse.json({ error: "Invalid swing price" }, { status: 400 });
-    if (!swingDir || (swingDir !== "HIGH" && swingDir !== "LOW"))
-      return NextResponse.json({ error: "swingDir must be HIGH or LOW" }, { status: 400 });
-    if (!candles || candles.length < 50)
-      return NextResponse.json({ error: "Need ≥50 candles" }, { status: 400 });
+    if (!high || !low || high <= 0 || low <= 0) {
+      return NextResponse.json(
+        { error: "Provide both high and low parameters > 0", example: "{ high: 4369.66, low: 4306.11, tf: '60' }" },
+        { status: 400 }
+      );
+    }
 
-    const { levels, high, low, pivot } = calcGannFromSwing(swingPrice, swingDir, candles);
-    const allSignals = [
-      ...detectFVG(candles),
-      ...detectOB(candles),
-      ...detectStructure(candles),
-    ];
-
-    const results = levels.map((g) => {
-      const { smcSignals, score, grade } = scoreConfluence(g.price, allSignals);
-      return {
-        type: g.direction,
-        level: g.price,
-        pivot: g.direction === "BUY" ? low : high,
-        pctFromPivot: +(((g.price - (g.direction === "BUY" ? low : high)) / (g.direction === "BUY" ? low : high)) * 100).toFixed(3),
-        rawScore: score,
-        smcSignals,
-        smcBonus: smcSignals.length * 3,
-        confluenceScore: score,
-        grade,
-      };
-    }).sort((a, b) => b.confluenceScore - a.confluenceScore);
-
-    return NextResponse.json({
-      swingHigh: high,
-      swingLow: low,
-      pivot,
-      timeframe: "client-supplied",
-      results,
-    });
-  } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: 500 });
-  }
-}
-
-// ── GET fallback: Gann-only (no SMC) ──
-export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const swingPrice = Number(searchParams.get("swingPrice"));
-  const swingDir = (searchParams.get("swingDir") || "HIGH").toUpperCase() as "HIGH" | "LOW";
-
-  if (!swingPrice || swingPrice <= 0)
-    return NextResponse.json(
-      {
-        error: "Invalid swing price",
-        example: "/api/gann?swingPrice=4300&swingDir=HIGH&tf=15m",
-      },
-      { status: 400 }
-    );
-
-  try {
-    const tf = searchParams.get("tf") || "15m";
-    const candles = await fetchBinanceCandles(tf, 500);
+    const candles = await fetchTVCandles(tf, 500);
     if (candles.length < 50)
       return NextResponse.json({ error: "Need ≥50 candles" }, { status: 400 });
 
-    const { levels, high, low, pivot } = calcGannFromSwing(swingPrice, swingDir, candles);
-    const allSignals = [
-      ...detectFVG(candles),
-      ...detectOB(candles),
-      ...detectStructure(candles),
-    ];
+    const gannLevels = calcGann(high, low);
+    const allSignals = [...detectFVG(candles), ...detectOB(candles), ...detectStructure(candles)];
 
-    const results = levels.map((g) => {
-      const { smcSignals, score, grade } = scoreConfluence(g.price, allSignals);
+    const results = gannLevels.map((g) => {
+      const matched: string[] = [];
+      for (const s of allSignals) {
+        if (Math.abs(s.price - g.level) <= TOLERANCE) {
+          matched.push(`${s.type} ${s.direction === "bullish" ? "↑" : "↓"}`);
+        }
+      }
+      const unique = [...new Set(matched)];
+      const score = Math.min(10, unique.length * 3 + (unique.length > 1 ? 2 : 0));
+      const grade = score >= 7 ? "HIGH" : score >= 4 ? "MED" : "LOW";
+
       return {
-        type: g.direction,
-        level: g.price,
-        pivot: g.direction === "BUY" ? low : high,
-        pctFromPivot: +(((g.price - (g.direction === "BUY" ? low : high)) / (g.direction === "BUY" ? low : high)) * 100).toFixed(3),
-        rawScore: score,
-        smcSignals,
-        smcBonus: smcSignals.length * 3,
+        label: g.label,
+        type: g.label.startsWith("BUY") ? "BUY" : "SELL",
+        level: g.level,
+        pivot: g.label.startsWith("BUY") ? low : high,
+        pctFromPivot: +(((g.level - (g.label.startsWith("BUY") ? low : high)) / (g.label.startsWith("BUY") ? low : high)) * 100).toFixed(3),
         confluenceScore: score,
         grade,
+        smcSignals: unique,
       };
-    }).sort((a, b) => b.confluenceScore - a.confluenceScore);
+    });
 
-    const livePrice = await fetchLivePrice();
-    return NextResponse.json({ swingHigh: high, swingLow: low, pivot, timeframe: tf, results, livePrice });
-  } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: 502 });
+    // Live price dari TradingView candles
+    let livePrice: number | null = null;
+    try {
+      const tvPrice = candles[candles.length - 1]?.close;
+      if (tvPrice) livePrice = tvPrice;
+    } catch { /* skip */ }
+
+    return NextResponse.json({
+      ok: true,
+      meta: {
+        symbol: "XAUUSD",
+        timeframe: tf,
+        candles: candles.length,
+        source: "TradingView",
+        gannVersion: "fixed-increment (0.125/0.175/0.250)",
+      },
+      inputs: { high, low },
+      livePrice,
+      results: results.sort((a, b) => (a.type === "SELL" ? 0 : 1) - (b.type === "SELL" ? 0 : 1)),
+    });
+  } catch (error) {
+    return NextResponse.json({ error: error instanceof Error ? error.message : "Unknown error" }, { status: 500 });
   }
+}
+
+// ── GET with query params ──
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const high = Number(searchParams.get("high"));
+  const low = Number(searchParams.get("low"));
+
+  if (!high || !low || high <= 0 || low <= 0) {
+    return NextResponse.json(
+      { error: "Provide high & low", example: "/api/gann?high=4369.66&low=4306.11&tf=60" },
+      { status: 400 }
+    );
+  }
+
+  const tf = searchParams.get("tf") || "15m";
+  const candles = await fetchTVCandles(tf, 500);
+  if (candles.length < 50)
+    return NextResponse.json({ error: "Need ≥50 candles" }, { status: 400 });
+
+  const gannLevels = calcGann(high, low);
+  const allSignals = [...detectFVG(candles), ...detectOB(candles), ...detectStructure(candles)];
+
+  const results = gannLevels.map((g) => {
+    const matched: string[] = [];
+    for (const s of allSignals) {
+      if (Math.abs(s.price - g.level) <= TOLERANCE) {
+        matched.push(`${s.type} ${s.direction === "bullish" ? "↑" : "↓"}`);
+      }
+    }
+    const unique = [...new Set(matched)];
+    const score = Math.min(10, unique.length * 3 + (unique.length > 1 ? 2 : 0));
+    return {
+      label: g.label,
+      type: g.label.startsWith("BUY") ? "BUY" : "SELL",
+      level: g.level,
+      pivot: g.label.startsWith("BUY") ? low : high,
+      pctFromPivot: +(((g.level - (g.label.startsWith("BUY") ? low : high)) / (g.label.startsWith("BUY") ? low : high)) * 100).toFixed(3),
+      confluenceScore: score,
+      grade: score >= 7 ? "HIGH" : score >= 4 ? "MED" : "LOW",
+      smcSignals: unique,
+    };
+  });
+
+  return NextResponse.json({
+    ok: true,
+    meta: { symbol: "XAUUSD", timeframe: tf, candles: candles.length, source: "TradingView" },
+    inputs: { high, low },
+    results: results.sort((a, b) => (a.type === "SELL" ? 0 : 1) - (b.type === "SELL" ? 0 : 1)),
+  });
 }

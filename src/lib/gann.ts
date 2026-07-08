@@ -1,62 +1,34 @@
-// Gann Square of 9 Confluence Calculator
-// Calculates key price levels based on Gann's Square of 9 methodology
+// QuantumLeaps — Gann Square of 9 (Fixed-Increment)
+// Level = (√price ± increment)²
+// Source: quantumleaps-api LuxAlgo Engine
 
 export type GannLevel = {
+  label: string;       // BUY1–3, SELL1–3
   price: number;
-  angle: number;      // degrees (0, 90, 180, 270, 360...)
-  direction: "buy" | "sell";
-  label: string;      // e.g., "Cardinal Cross", "Ordinal Cross", "0°", "45°"
+  type: "BUY" | "SELL";
 };
 
-// Square root of price → rotate by degrees → square back
-function gannLevel(price: number, degrees: number): number {
-  const sqrt = Math.sqrt(price);
-  const rotated = sqrt + degrees / 360;
-  return +(rotated * rotated).toFixed(2);
-}
+const INCREMENTS = [0.125, 0.175, 0.250];
 
 export function calculateGannLevels(high: number, low: number): GannLevel[] {
   const levels: GannLevel[] = [];
-  const mid = (high + low) / 2;
 
-  // Key Gann angles from swing high → resistance (sell)
-  const sellAngles = [90, 180, 270, 360];
-  // Key Gann angles from swing low → support (buy)
-  const buyAngles = [90, 180, 270, 360];
-
-  for (const angle of sellAngles) {
-    const price = gannLevel(high, angle);
-    if (price > high && price < high * 1.05) { // within 5% of range
+  if (high) {
+    for (let i = 0; i < INCREMENTS.length; i++) {
       levels.push({
-        price,
-        angle,
-        direction: "sell",
-        label: angle <= 180 ? "Cardinal Cross" : "Ordinal Cross",
+        label: `BUY${i + 1}`,
+        price: +Math.pow(Math.sqrt(high) - INCREMENTS[i], 2).toFixed(2),
+        type: "BUY",
       });
     }
   }
-
-  for (const angle of buyAngles) {
-    const price = gannLevel(low, -angle);
-    if (price < low && price > low * 0.95) {
+  if (low) {
+    for (let i = 0; i < INCREMENTS.length; i++) {
       levels.push({
-        price,
-        angle,
-        direction: "buy",
-        label: angle <= 180 ? "Cardinal Cross" : "Ordinal Cross",
+        label: `SELL${i + 1}`,
+        price: +Math.pow(Math.sqrt(low) + INCREMENTS[i], 2).toFixed(2),
+        type: "SELL",
       });
-    }
-  }
-
-  // Also calculate from mid price for additional levels
-  for (const angle of [45, 135, 225, 315]) {
-    const above = gannLevel(mid, angle);
-    const below = gannLevel(mid, -angle);
-    if (above > low && above < high * 1.03) {
-      levels.push({ price: above, angle, direction: "sell", label: `${angle}°` });
-    }
-    if (below > low * 0.97 && below < high) {
-      levels.push({ price: below, angle, direction: "buy", label: `-${angle}°` });
     }
   }
 

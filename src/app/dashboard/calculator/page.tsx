@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -12,440 +13,299 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
 import {
-  Calculator,
+  Target,
   TrendingUp,
   TrendingDown,
-  Target,
   Loader2,
   Zap,
-  Clock,
-  ChevronRight,
-  Sparkles,
-  ArrowUp,
+  Activity,
   ArrowDown,
+  ArrowUp,
+  RefreshCw,
 } from "lucide-react";
 
-// M1–M30 timeframes (all minutes)
-const TIMEFRAMES = Array.from({ length: 30 }, (_, i) => ({
-  value: `${i + 1}m`,
-  label: `M${i + 1}`,
-}));
-
-type SwingDir = "HIGH" | "LOW";
-
-interface GannResult {
+type GannLevel = {
+  label: string;
   type: "BUY" | "SELL";
   level: number;
   pivot: number;
   pctFromPivot: number;
-  rawScore: number;
-  smcSignals: string[];
-  smcBonus: number;
   confluenceScore: number;
-  grade: "HIGH" | "MED" | "LOW";
+  grade: string;
+  smcSignals: string[];
+};
+
+type ApiResponse = {
+  ok: boolean;
+  meta: { symbol: string; timeframe: string; candles: number; source: string; gannVersion?: string };
+  inputs: { high: number; low: number };
+  livePrice: number | null;
+  results: GannLevel[];
+};
+
+const TIMEFRAMES = [
+  { value: "1m", label: "1 menit" },
+  { value: "5m", label: "5 menit" },
+  { value: "15m", label: "15 menit" },
+  { value: "30m", label: "30 menit" },
+  { value: "60", label: "1 jam" },
+  { value: "240", label: "4 jam" },
+];
+
+function fmt(n: number | null | undefined, d = 2): string {
+  return n != null ? n.toFixed(d) : "—";
 }
 
-interface GannResponse {
-  swingHigh: number;
-  swingLow: number;
-  pivot: number;
-  timeframe: string;
-  results: GannResult[];
-}
-
-function AlertIcon(props: any) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
-      <path d="M12 9v4" />
-      <path d="M12 17h.01" />
-    </svg>
-  );
-}
-
-export default function CalculatorPage() {
-  const [swingPrice, setSwingPrice] = useState("");
-  const [swingDir, setSwingDir] = useState<SwingDir>("HIGH");
-  const [timeframe, setTimeframe] = useState("5m");
+export default function GannCalculatorPage() {
+  const [high, setHigh] = useState("4369.66");
+  const [low, setLow] = useState("4306.11");
+  const [tf, setTf] = useState("15m");
+  const [data, setData] = useState<ApiResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [data, setData] = useState<GannResponse | null>(null);
 
-  const TF_MAP: Record<string, string> = {
-    "1m": "1m", "3m": "3m", "5m": "5m", "10m": "10m", "15m": "15m",
-    "20m": "20m", "25m": "25m", "30m": "30m",
-  };
-
-  async function handleCalc(e: React.FormEvent) {
-    e.preventDefault();
-    const price = parseFloat(swingPrice);
-    if (!price || price <= 0) {
-      setError("Masukkan harga swing yang valid");
-      return;
-    }
+  async function fetchCalc(h: string, l: string, t: string) {
     setLoading(true);
     setError("");
     try {
-      const tf = TF_MAP[timeframe] || "5m";
-      const res = await fetch(`/api/gann?swingPrice=${price}&swingDir=${swingDir}&tf=${tf}`);
-      if (!res.ok) throw new Error(`API ${res.status}`);
-      const json = await res.json();
-      if (json.error) throw new Error(json.error);
-      setData(json);
-    } catch (err: any) {
-      setError(err.message);
+      const r = await fetch(`/api/gann?high=${Number(h)}&low=${Number(l)}&tf=${t}`);
+      if (!r.ok) {
+        const e = await r.json();
+        throw new Error(e.error || "Gagal fetch");
+      }
+      const d = await r.json();
+      setData(d);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unknown error");
     } finally {
       setLoading(false);
     }
   }
 
-  function getScoreStyle(score: number) {
-    if (score >= 8) return { bg: "bg-signal-buy", text: "text-signal-buy", border: "border-signal-buy" };
-    if (score >= 6) return { bg: "bg-accent", text: "text-primary", border: "border-border" };
-    return { bg: "bg-muted/30", text: "text-muted-foreground", border: "border-border" };
+  useEffect(() => {
+    if (high && low) fetchCalc(high, low, tf);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  function handleCalc() {
+    if (!high || !low) return;
+    fetchCalc(high, low, tf);
   }
 
   return (
-    <div className="mx-auto max-w-6xl space-y-8 px-6 py-8 animate-in fade-in duration-500">
+    <div className="mx-auto max-w-6xl space-y-6 p-6">
       {/* Header */}
-      <div className="space-y-1">
-        <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
-          <Calculator className="size-8 text-primary" />
-          Gann Calculator
-        </h1>
+      <div className="flex flex-col gap-1">
+        <h1 className="text-3xl font-bold tracking-tight">Gann Calculator</h1>
         <p className="text-sm text-muted-foreground">
-          Institutional price levels via Gann Square of 9 + Smart Money Confluence
+          Hitung level support/resistance Gann Square of 9 + LuxAlgo confluence scanner.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        {/* Left: Input Form */}
-        <div className="lg:col-span-4 space-y-6">
-          <Card className="bg-card border-border shadow-sm overflow-hidden">
-            <CardHeader className="bg-muted/30 pb-4 border-b border-border">
+      {/* Input Card */}
+      <Card className="border-border bg-card shadow-sm">
+        <CardContent className="pt-6">
+          <div className="grid gap-6 md:grid-cols-[1fr_1fr_auto_auto] items-end">
+            {/* High */}
+            <div className="space-y-2">
+              <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
+                <TrendingUp className="size-3.5 text-signal-sell" /> Swing High
+              </Label>
+              <Input
+                type="number"
+                step="0.01"
+                placeholder="4369.66"
+                value={high}
+                onChange={(e) => setHigh(e.target.value)}
+                className="font-mono font-bold text-lg h-11"
+              />
+            </div>
+
+            {/* Low */}
+            <div className="space-y-2">
+              <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
+                <TrendingDown className="size-3.5 text-signal-buy" /> Swing Low
+              </Label>
+              <Input
+                type="number"
+                step="0.01"
+                placeholder="4306.11"
+                value={low}
+                onChange={(e) => setLow(e.target.value)}
+                className="font-mono font-bold text-lg h-11"
+              />
+            </div>
+
+            {/* Timeframe */}
+            <div className="space-y-2">
+              <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                Timeframe
+              </Label>
+              <Select
+                value={tf}
+                onValueChange={(value: string | null, _details: any) => {
+                  if (value) setTf(value);
+                }}
+              >
+                <SelectTrigger className="w-28 h-11 font-mono font-bold">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {TIMEFRAMES.map((t) => (
+                    <SelectItem key={t.value} value={t.value}>
+                      {t.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Calculate */}
+            <Button onClick={handleCalc} disabled={loading || !high || !low} className="h-11 px-6" size="lg">
+              {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Zap className="mr-2 h-4 w-4" />}
+              Calculate
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Error */}
+      {error && (
+        <Card className="bg-red-50 border-red-200 dark:bg-red-950/20 dark:border-red-800">
+          <CardContent className="pt-6 flex items-center gap-3 text-red-600 dark:text-red-400">
+            <span className="text-sm font-medium">{error}</span>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Results */}
+      {data && (
+        <>
+          {/* Live Price */}
+          {data.livePrice && (
+            <div className="flex items-center gap-2 text-2xl font-mono font-bold tracking-tight">
+              <Activity className="size-5 text-primary" />
+              <span className="text-primary text-sm uppercase font-bold tracking-widest mr-1">Live</span>
+              ${fmt(data.livePrice)}
+              <span className="text-xs text-muted-foreground font-normal font-sans ml-auto">
+                {data.meta.symbol} · {data.meta.timeframe} · {data.meta.candles} candles · {data.meta.source}
+              </span>
+            </div>
+          )}
+
+          {/* Results Table */}
+          <Card className="border-border bg-card shadow-sm overflow-hidden">
+            <CardHeader className="bg-muted/30 border-b border-border pb-3">
               <CardTitle className="text-sm font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-                <Sparkles className="size-3.5 text-primary" />
-                Parameters
+                <Target className="size-3.5 text-primary" />
+                Confluence Levels — Gann Square of 9 (Fixed-Increment)
               </CardTitle>
             </CardHeader>
-            <CardContent className="pt-6">
-              <form onSubmit={handleCalc} className="space-y-5">
-                <div className="space-y-4">
-                  {/* Direction toggle */}
-                  <div className="space-y-2">
-                    <Label className="text-foreground text-xs font-bold uppercase tracking-tighter">
-                      Swing Type
-                    </Label>
-                    <div className="grid grid-cols-2 gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setSwingDir("HIGH")}
-                        className={`h-11 rounded-lg border text-sm font-bold transition-all flex items-center justify-center gap-1.5 ${
-                          swingDir === "HIGH"
-                            ? "bg-signal-sell border-signal-sell text-foreground shadow-sm"
-                            : "bg-card border-border text-muted-foreground hover:border-signal-sell"
-                        }`}
-                      >
-                        <ArrowUp className="size-4" />
-                        Swing HIGH
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setSwingDir("LOW")}
-                        className={`h-11 rounded-lg border text-sm font-bold transition-all flex items-center justify-center gap-1.5 ${
-                          swingDir === "LOW"
-                            ? "bg-signal-buy border-signal-buy text-foreground shadow-sm"
-                            : "bg-card border-border text-muted-foreground hover:border-signal-buy"
-                        }`}
-                      >
-                        <ArrowDown className="size-4" />
-                        Swing LOW
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-foreground text-xs font-bold uppercase tracking-tighter">
-                      {swingDir === "HIGH" ? "Swing High Price" : "Swing Low Price"}
-                    </Label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      placeholder={swingDir === "HIGH" ? "e.g. 3385.50" : "e.g. 3320.20"}
-                      value={swingPrice}
-                      onChange={(e) => setSwingPrice(e.target.value)}
-                      className="bg-muted/30 border-border text-foreground font-mono h-11 focus:ring-primary/50 focus:border-primary"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-foreground text-xs font-bold uppercase tracking-tighter">
-                      Timeframe
-                    </Label>
-                    <Select value={timeframe} onValueChange={(v: string | null) => setTimeframe(v ?? "5m")}>
-                      <SelectTrigger className="bg-muted/30 border-border text-foreground h-11 font-mono">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="bg-card border-border max-h-[280px]">
-                        {TIMEFRAMES.map((tf) => (
-                          <SelectItem
-                            key={tf.value}
-                            value={tf.value}
-                            className="focus:bg-accent focus:text-white font-mono"
+            <CardContent className="pt-0 px-0 overflow-x-auto">
+              <table className="w-full min-w-[700px]">
+                <thead>
+                  <tr className="text-muted-foreground text-[10px] uppercase tracking-widest font-bold border-b border-border">
+                    <th className="px-6 py-3 text-left">Label</th>
+                    <th className="px-6 py-3 text-left">Type</th>
+                    <th className="px-6 py-3 text-right">Level</th>
+                    <th className="px-6 py-3 text-right">From Pivot</th>
+                    <th className="px-6 py-3 text-center">Score</th>
+                    <th className="px-6 py-3 text-left">SMC Signals</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.results.map((lv, i) => (
+                    <tr
+                      key={i}
+                      className={`border-b border-border/50 hover:bg-accent/30 transition-colors ${
+                        lv.grade === "HIGH" ? "bg-emerald-50/30 dark:bg-emerald-950/10" : ""
+                      }`}
+                    >
+                      <td className="px-6 py-3.5 font-mono font-bold text-foreground text-sm">
+                        {lv.label}
+                      </td>
+                      <td className="px-6 py-3.5">
+                        <Badge
+                          variant="outline"
+                          className={`text-[10px] font-bold ${
+                            lv.type === "BUY"
+                              ? "border-green-500/30 bg-green-50 dark:bg-green-950/20 text-green-600 dark:text-green-400"
+                              : "border-red-500/30 bg-red-50 dark:bg-red-950/20 text-red-600 dark:text-red-400"
+                          }`}
+                        >
+                          {lv.type === "BUY" ? <ArrowUp className="inline size-3 mr-1" /> : <ArrowDown className="inline size-3 mr-1" />}
+                          {lv.type}
+                        </Badge>
+                      </td>
+                      <td className="px-6 py-3.5 font-mono font-bold text-right text-foreground">
+                        ${fmt(lv.level)}
+                      </td>
+                      <td className="px-6 py-3.5 font-mono text-right text-muted-foreground">
+                        {lv.pctFromPivot >= 0 ? "+" : ""}{lv.pctFromPivot.toFixed(2)}%
+                      </td>
+                      <td className="px-6 py-3.5">
+                        <div className="flex items-center justify-center gap-2">
+                          <div className="w-20 h-2 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
+                            <div
+                              className={`h-full rounded-full transition-all ${
+                                lv.confluenceScore >= 7
+                                  ? "bg-emerald-500"
+                                  : lv.confluenceScore >= 4
+                                  ? "bg-amber-500"
+                                  : "bg-zinc-300 dark:bg-zinc-600"
+                              }`}
+                              style={{ width: `${lv.confluenceScore * 10}%` }}
+                            />
+                          </div>
+                          <span
+                            className={`text-sm font-mono font-bold min-w-[3ch] text-right ${
+                              lv.confluenceScore >= 7
+                                ? "text-emerald-600 dark:text-emerald-400"
+                                : lv.confluenceScore >= 4
+                                ? "text-amber-600 dark:text-amber-400"
+                                : "text-muted-foreground"
+                            }`}
                           >
-                            {tf.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                {error && (
-                  <div className="bg-signal-sell border border-signal-sell p-3 rounded-lg text-signal-sell text-xs font-medium flex items-center gap-2">
-                    <AlertIcon className="size-3.5" />
-                    {error}
-                  </div>
-                )}
-                <Button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full h-12  font-bold text-sm transition-all duration-300 shadow-sm"
-                >
-                  {loading ? (
-                    <Loader2 className="animate-spin mr-2 size-4" />
-                  ) : (
-                    <Target className="mr-2 size-4" />
-                  )}
-                  {loading ? "Calculating..." : "Hitung Confluence"}
-                </Button>
-              </form>
+                            {lv.confluenceScore}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-3.5">
+                        <div className="flex flex-wrap gap-1">
+                          {lv.smcSignals.length > 0 ? (
+                            lv.smcSignals.map((s, j) => (
+                              <Badge key={j} variant="secondary" className="text-[10px] font-mono">
+                                {s}
+                              </Badge>
+                            ))
+                          ) : (
+                            <span className="text-[10px] text-muted-foreground italic">—</span>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </CardContent>
           </Card>
 
-          <div className="p-4 rounded-xl border border-border bg-muted/30 text-[10px] text-muted-foreground space-y-2">
-            <div className="flex items-center gap-2">
-              <Clock className="size-3 text-primary" />
-              <span>Data source: Binance PAXGUSDT · 500 bars</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Zap className="size-3 text-primary" />
-              <span>Confluence logic v2.4 (Institutional)</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Right: Results */}
-        <div className="lg:col-span-8 space-y-6">
-          {!data ? (
-            <div className="h-full min-h-[400px] rounded-2xl border border-dashed border-border bg-card flex flex-col items-center justify-center text-center p-8 space-y-4">
-              <div className="size-16 rounded-full bg-accent border border-border flex items-center justify-center">
-                <Calculator className="size-8 text-primary" />
+          {/* Summary */}
+          <Card className="border-border bg-card shadow-sm">
+            <CardContent className="pt-4 pb-4">
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <span>
+                  Input: H <b className="text-foreground">${fmt(data.inputs.high)}</b> ·
+                  L <b className="text-foreground">${fmt(data.inputs.low)}</b>
+                </span>
+                <span>
+                  Formula: {data.meta.gannVersion || "Fixed-increment"}
+                </span>
               </div>
-              <div>
-                <p className="text-foreground font-medium">Belum ada data perhitungan</p>
-                <p className="text-muted-foreground text-xs mt-1 max-w-[280px]">
-                  Pilih tipe swing (High/Low) + masukkan harga + timeframe M1–M30.
-                </p>
-              </div>
-            </div>
-          ) : (
-            <>
-              {/* Stats Bar */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <div className="bg-card border border-border p-3.5 rounded-xl space-y-1 shadow-sm">
-                  <p className="text-[9px] uppercase tracking-widest text-muted-foreground font-bold flex items-center gap-1.5">
-                    <Target className="size-3 text-primary" />
-                    Swing
-                  </p>
-                  <p className="text-base font-mono font-bold text-foreground">
-                    {data.swingHigh === data.swingLow
-                      ? data.swingHigh
-                      : `${data.swingHigh} / ${data.swingLow}`}
-                  </p>
-                </div>
-                <div className="bg-card border border-border p-3.5 rounded-xl space-y-1 shadow-sm">
-                  <p className="text-[9px] uppercase tracking-widest text-muted-foreground font-bold flex items-center gap-1.5">
-                    <Sparkles className="size-3 text-primary" />
-                    Pivot
-                  </p>
-                  <p className="text-base font-mono font-bold text-foreground">
-                    {data.pivot.toFixed(2)}
-                  </p>
-                </div>
-                <div className="bg-card border border-border p-3.5 rounded-xl space-y-1 shadow-sm">
-                  <p className="text-[9px] uppercase tracking-widest text-muted-foreground font-bold flex items-center gap-1.5">
-                    <ChevronRight className="size-3 text-primary" />
-                    Range
-                  </p>
-                  <p className="text-base font-mono font-bold text-foreground">
-                    {Math.abs(data.swingHigh - data.swingLow).toFixed(2)}
-                  </p>
-                </div>
-                <div className="bg-card border border-border p-3.5 rounded-xl space-y-1 shadow-sm">
-                  <p className="text-[9px] uppercase tracking-widest text-muted-foreground font-bold flex items-center gap-1.5">
-                    <Clock className="size-3 text-primary" />
-                    TF
-                  </p>
-                  <p className="text-base font-mono font-bold text-foreground">
-                    {data.timeframe.toUpperCase()}
-                  </p>
-                </div>
-              </div>
-
-              {/* BUY Section */}
-              {data.results.some((r) => r.type === "BUY") && (
-                <section className="space-y-3">
-                  <div className="flex items-center gap-3">
-                    <TrendingUp className="size-4 text-signal-buy" />
-                    <h2 className="text-sm font-bold uppercase tracking-widest text-foreground">
-                      Potential Buy Zones
-                    </h2>
-                    <div className="h-px flex-1 bg-gradient-to-r from-border to-transparent" />
-                  </div>
-                  <div className="grid gap-3">
-                    {data.results
-                      .filter((r) => r.type === "BUY")
-                      .map((r, i) => (
-                        <ResultRow
-                          key={`b${i}`}
-                          r={r}
-                          idx={i}
-                          colorClass="emerald"
-                          style={getScoreStyle(r.confluenceScore)}
-                        />
-                      ))}
-                  </div>
-                </section>
-              )}
-
-              {/* SELL Section */}
-              {data.results.some((r) => r.type === "SELL") && (
-                <section className="space-y-3 pt-4">
-                  <div className="flex items-center gap-3">
-                    <TrendingDown className="size-4 text-signal-sell" />
-                    <h2 className="text-sm font-bold uppercase tracking-widest text-foreground">
-                      Potential Sell Zones
-                    </h2>
-                    <div className="h-px flex-1 bg-gradient-to-r from-border to-transparent" />
-                  </div>
-                  <div className="grid gap-3">
-                    {data.results
-                      .filter((r) => r.type === "SELL")
-                      .map((r, i) => (
-                        <ResultRow
-                          key={`s${i}`}
-                          r={r}
-                          idx={i}
-                          colorClass="rose"
-                          style={getScoreStyle(r.confluenceScore)}
-                        />
-                      ))}
-                  </div>
-                </section>
-              )}
-            </>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function ResultRow({
-  r,
-  idx,
-  colorClass,
-  style,
-}: {
-  r: GannResult;
-  idx: number;
-  colorClass: string;
-  style: { bg: string; text: string; border: string };
-}) {
-  return (
-    <div
-      className={`relative overflow-hidden bg-card border ${style.border} rounded-xl p-4 flex items-center gap-4 hover:border-primary transition-all duration-300 shadow-sm hover:shadow-md`}
-    >
-      <div
-        className={`absolute left-0 top-0 bottom-0 w-1 ${
-          r.grade === "HIGH"
-            ? "bg-signal-buy0"
-            : r.grade === "MED"
-            ? "bg-accent"
-            : "bg-muted"
-        }`}
-      />
-
-      <div className="w-10 h-10 rounded-lg bg-muted/30 flex items-center justify-center font-mono font-bold text-xs text-muted-foreground border border-border uppercase">
-        {r.type[0]}
-        {idx + 1}
-      </div>
-
-      <div className="flex-1">
-        <div className="flex items-center gap-3">
-          <span className="text-lg font-mono font-bold text-foreground tracking-tight">
-            {r.level.toLocaleString()}
-          </span>
-          <span className="text-[10px] font-mono text-muted-foreground bg-muted/30 px-1.5 py-0.5 rounded border border-border">
-            {r.pctFromPivot > 0 ? "+" : ""}
-            {r.pctFromPivot.toFixed(3)}%
-          </span>
-        </div>
-        <div className="mt-2 flex flex-wrap gap-1.5">
-          {r.smcSignals.length > 0 ? (
-            r.smcSignals.map((s, j) => (
-              <Badge
-                key={j}
-                variant="outline"
-                className={`text-[9px] font-bold py-0 h-4 ${
-                  colorClass === "emerald"
-                    ? "border-signal-buy bg-signal-buy text-signal-buy"
-                    : "border-signal-sell bg-signal-sell text-signal-sell"
-                } uppercase tracking-tighter`}
-              >
-                {s}
-              </Badge>
-            ))
-          ) : (
-            <span className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest italic">
-              No Confluence Found
-            </span>
-          )}
-        </div>
-      </div>
-
-      <div className="text-right flex flex-col items-end gap-1">
-        <div
-          className={`px-3 py-1 rounded-full border ${style.border} ${style.bg} text-[11px] font-black font-mono tracking-tighter ${style.text}`}
-        >
-          SC {r.confluenceScore}
-          <span className="opacity-50 ml-0.5 text-[9px]">/10</span>
-        </div>
-        <span
-          className={`text-[10px] font-bold tracking-widest uppercase ${
-            r.grade === "HIGH"
-              ? "text-signal-buy"
-              : r.grade === "MED"
-              ? "text-primary"
-              : "text-muted-foreground"
-          }`}
-        >
-          {r.grade} Quality
-        </span>
-      </div>
+            </CardContent>
+          </Card>
+        </>
+      )}
     </div>
   );
 }
