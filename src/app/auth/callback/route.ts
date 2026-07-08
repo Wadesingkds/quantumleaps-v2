@@ -1,10 +1,18 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase-server";
 
+// Only allow internal, absolute-path redirects (no protocol-relative //evil.com)
+function safeRedirect(target: string | null, fallback = "/dashboard"): string {
+  if (!target) return fallback;
+  // Must start with single slash and NOT // (protocol-relative)
+  if (target.startsWith("/") && !target.startsWith("//")) return target;
+  return fallback;
+}
+
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get("code");
-  const redirect = requestUrl.searchParams.get("redirect") ?? "/dashboard";
+  const redirect = safeRedirect(requestUrl.searchParams.get("redirect"));
 
   if (code) {
     const supabase = await createClient();

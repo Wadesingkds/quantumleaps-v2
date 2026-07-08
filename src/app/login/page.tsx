@@ -10,7 +10,12 @@ import { Badge } from "@/components/ui/badge";
 export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const searchParams = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
-  const redirect = searchParams.get("redirect") ?? "/dashboard";
+  const rawRedirect = searchParams.get("redirect") ?? "/dashboard";
+  // Only allow internal absolute-path redirects
+  const redirect =
+    rawRedirect.startsWith("/") && !rawRedirect.startsWith("//")
+      ? rawRedirect
+      : "/dashboard";
 
   async function handleGoogle() {
     setLoading(true);
