@@ -67,7 +67,7 @@ export function BuyProButton() {
         </>
       ) : (
         <>
-          <Sparkles className="mr-2 h-4 w-4" /> Minta Akses Pro — Rp500K/bulan
+          <Sparkles className="mr-2 h-4 w-4" /> Minta Akses Pro — Rp999.000
         </>
       )}
     </Button>
@@ -87,7 +87,7 @@ export function PricingPage() {
           Pilih akses sesuai kebutuhan.
         </h1>
         <p className="mt-3 text-muted-foreground">
-          Scanner XAUUSD dengan Gann + SMC. Bayar sekali, akses penuh 30 hari.
+          Scanner XAUUSD dengan Gann + SMC. Bayar sekali, akses penuh premium.
         </p>
       </div>
 
@@ -128,8 +128,8 @@ export function PricingPage() {
             <h3 className="text-lg font-semibold">Pro</h3>
             <p className="mt-1 text-sm text-muted-foreground">Untuk trader aktif</p>
             <div className="mt-6 flex items-baseline gap-2">
-              <span className="text-4xl font-bold tracking-tight">Rp500K</span>
-              <span className="text-sm text-muted-foreground">/bulan</span>
+              <span className="text-4xl font-bold tracking-tight">Rp999.000</span>
+              <span className="text-sm text-muted-foreground">/akses penuh</span>
             </div>
             <ul className="mt-6 space-y-3 text-sm">
               {[

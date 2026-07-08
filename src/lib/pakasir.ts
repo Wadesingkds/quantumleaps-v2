@@ -11,7 +11,7 @@ export const PAKASIR_MODE = process.env.PAKASIR_MODE || "production";
 export const WEBSITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL || "https://quantumleaps.biz.id";
 
-export const PRO_AMOUNT = 500000; // Rp 500.000 / bulan
+export const PRO_AMOUNT = 999000; // Rp 999.000 — harga premium sekali bayar (lifetime access)
 
 export type PakasirPayment = {
   project: string;
