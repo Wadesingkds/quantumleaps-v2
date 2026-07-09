@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Activity, BarChart3, Calculator, Home, LogOut, Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { createClient } from "@/lib/supabase-browser";
 
 const navItems = [
   { label: "Dashboard", href: "/dashboard", icon: Home },
@@ -56,6 +57,14 @@ function Nav({ onNavigate }: { onNavigate?: () => void }) {
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
+  const router = useRouter();
+
+  async function handleSignOut() {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/login");
+    router.refresh();
+  }
 
   return (
     <div className="min-h-screen bg-background text-foreground md:flex">
@@ -65,7 +74,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         </div>
         <Nav />
         <div className="absolute bottom-0 w-full border-t border-border p-4">
-          <Button variant="ghost" className="w-full justify-start gap-2 text-muted-foreground" render={<Link href="/auth/signout" />}>
+          <Button variant="ghost" className="w-full justify-start gap-2 text-muted-foreground" onClick={handleSignOut}>
             <LogOut className="h-4 w-4" /> Sign Out
           </Button>
         </div>
@@ -91,7 +100,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
               </div>
               <Nav onNavigate={() => setOpen(false)} />
               <div className="mt-auto border-t border-border p-4">
-                <Button variant="ghost" className="w-full justify-start gap-2 text-muted-foreground" render={<Link href="/auth/signout" />}>
+                <Button variant="ghost" className="w-full justify-start gap-2 text-muted-foreground" onClick={handleSignOut}>
                   <LogOut className="h-4 w-4" /> Sign Out
                 </Button>
               </div>
