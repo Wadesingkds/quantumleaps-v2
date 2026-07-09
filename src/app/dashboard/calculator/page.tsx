@@ -66,13 +66,18 @@ function GannCalculatorContent() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  async function fetchCalc(h: string, l: string, t: string) {
+  const toNum = (v: string): number | undefined => {
+    const n = Number(v.trim().replace(",", "."));
+    return v.trim() && !Number.isNaN(n) && n > 0 ? n : undefined;
+  };
+
+  async function fetchCalc(h?: number, l?: number, t: string = "15m") {
     setLoading(true);
     setError("");
     try {
       const params = new URLSearchParams();
-      if (h) params.set("high", String(Number(h)));
-      if (l) params.set("low", String(Number(l)));
+      if (h) params.set("high", String(h));
+      if (l) params.set("low", String(l));
       params.set("tf", t);
       const r = await fetch(`/api/gann?${params.toString()}`);
       if (!r.ok) {
@@ -89,12 +94,20 @@ function GannCalculatorContent() {
   }
 
   useEffect(() => {
-    if (high && low) fetchCalc(high, low, tf);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    const h = toNum(high);
+    const l = toNum(low);
+    if (h || l) fetchCalc(h, l, tf);
+    // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   function handleCalc() {
-    if (!high && !low) return;
-    fetchCalc(high, low, tf);
+    const h = toNum(high);
+    const l = toNum(low);
+    if (!h && !l) {
+      setError("Isi minimal satu: Swing High atau Swing Low");
+      return;
+    }
+    fetchCalc(h, l, tf);
   }
 
   return (
@@ -300,8 +313,8 @@ function GannCalculatorContent() {
             <CardContent className="pt-4 pb-4">
               <div className="flex items-center justify-between text-xs text-muted-foreground">
                 <span>
-                  Input: H <b className="text-foreground">${fmt(data.inputs.high)}</b> ·
-                  L <b className="text-foreground">${fmt(data.inputs.low)}</b>
+                  Input: H <b className="text-foreground">${fmt(data.inputs.high ?? undefined)}</b> ·{" "}
+                  L <b className="text-foreground">${fmt(data.inputs.low ?? undefined)}</b>
                 </span>
                 <span>
                   Formula: {data.meta.gannVersion || "Fixed-increment"}
