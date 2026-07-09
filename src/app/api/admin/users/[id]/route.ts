@@ -4,6 +4,50 @@ import { requireAdmin, type AdminRole } from "@/lib/authz";
 import { getAdminClient } from "@/lib/supabase-admin";
 import { audit } from "@/lib/audit";
 
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const guard = await requireAdmin(user?.id, "owner");
+  if (!guard.ok) return guard.response;
+
+  const { id } = await params;
+  if (id === user!.id) {
+    return NextResponse.json({ error: "Cannot delete yourself" }, { status: 400 });
+  }
+
+  const admin = getAdminClient();
+
+  const { data: before } = await admin.from("profiles").select("*").eq("id", id).single();
+  if (!before) return NextResponse.json({ error: "User not found" }, { status: 404 });
+
+  // delete profile first (FK), then auth user (cascade)
+  const { error: pErr } = await admin.from("profiles").delete().eq("id", id);
+  if (pErr) return NextResponse.json({ error: pErr.message }, { status: 500 });
+
+  const { error: aErr } = await admin.auth.admin.deleteUser(id);
+  if (aErr) {
+    // profile already deleted; log mismatch but treat as partial
+    console.error("[admin] deleted profile but failed auth user:", aErr);
+  }
+
+  await audit({
+    actor_id: user!.id,
+    action: "user_delete",
+    target_type: "profile",
+    target_id: id,
+    before,
+    after: null,
+    reason: new URL(request.url).searchParams.get("reason") ?? undefined,
+  });
+
+  return NextResponse.json({ ok: true });
+}
+
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -24,7 +68,6 @@ export async function PATCH(
 
   const admin = getAdminClient();
 
-  // capture before-state
   const { data: before } = await admin
     .from("profiles")
     .select("tier, is_admin")
