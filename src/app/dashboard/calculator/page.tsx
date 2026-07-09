@@ -59,8 +59,8 @@ function fmt(n: number | null | undefined, d = 2): string {
 }
 
 function GannCalculatorContent() {
-  const [high, setHigh] = useState("4369.66");
-  const [low, setLow] = useState("4306.11");
+  const [high, setHigh] = useState("");
+  const [low, setLow] = useState("");
   const [tf, setTf] = useState("15m");
   const [data, setData] = useState<ApiResponse | null>(null);
   const [loading, setLoading] = useState(false);
