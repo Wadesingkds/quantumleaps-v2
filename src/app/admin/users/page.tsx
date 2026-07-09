@@ -1,12 +1,12 @@
 export const dynamic = "force-dynamic";
 
 import { AdminShell } from "@/components/admin-shell";
-import { OverviewContent } from "./overview";
+import { UsersContent } from "./users-content";
 
-export default function AdminPage() {
+export default function UsersPage() {
   return (
     <AdminShell>
-      <OverviewContent />
+      <UsersContent />
     </AdminShell>
   );
 }
