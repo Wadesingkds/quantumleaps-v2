@@ -70,9 +70,8 @@ export async function GET(request: NextRequest) {
   }
 
   // Forward refreshed auth cookies into the redirect response.
-  const finalRes = NextResponse.redirect(`${requestUrl.origin}${redirect}`);
-  supabaseResponse.cookies.getAll().forEach(({ name, value, options }) => {
-    finalRes.cookies.set(name, value, options);
+  supabaseResponse.cookies.getAll().forEach(({ name, value }) => {
+    finalRes.cookies.set(name, value);
   });
   return finalRes;
 }
