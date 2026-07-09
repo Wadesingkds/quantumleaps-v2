@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter, useSearchParams, usePathname } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -10,17 +10,28 @@ import { toast } from "sonner";
 
 // Client-side premium gate. Renders children only when user is Pro.
 // Redirects free users to /pricing. Defense-in-depth alongside middleware.
+//
+// NOTE: intentionally avoids useSearchParams() to prevent the Next.js
+// "useSearchParams should be wrapped in a Suspense boundary" runtime crash.
+// Payment-return detection reads window.location.search instead (client-only).
 export function PremiumGate({ children }: { children: React.ReactNode }) {
   const { user, isPro, loading } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
-  const params = useSearchParams();
   const [busy, setBusy] = useState(false);
+  const [paymentReturn, setPaymentReturn] = useState(false);
+  const [returnOrderId, setReturnOrderId] = useState<string | null>(null);
 
-  // Detect return from Pakasir
-  const paymentReturn =
-    params.get("payment") === "success" || params.get("payment") === "already_pro";
-  const returnOrderId = params.get("order_id");
+  // Read ?payment=success from URL on mount (client-only, no Suspense needed)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const sp = new URLSearchParams(window.location.search);
+    const p = sp.get("payment");
+    if (p === "success" || p === "already_pro") {
+      setPaymentReturn(true);
+      setReturnOrderId(sp.get("order_id"));
+    }
+  }, []);
 
   useEffect(() => {
     if (loading) return;

@@ -219,7 +219,7 @@ function GannCalculatorContent() {
                   </tr>
                 </thead>
                 <tbody>
-                  {data.results.map((lv, i) => (
+                  {(data?.results ?? []).map((lv, i) => (
                     <tr
                       key={i}
                       className={`border-b border-border/50 hover:bg-accent/30 transition-colors ${
@@ -246,7 +246,7 @@ function GannCalculatorContent() {
                         ${fmt(lv.level)}
                       </td>
                       <td className="px-6 py-3.5 font-mono text-right text-muted-foreground">
-                        {lv.pctFromPivot >= 0 ? "+" : ""}{lv.pctFromPivot.toFixed(2)}%
+                        {Number.isFinite(lv.pctFromPivot) ? (lv.pctFromPivot >= 0 ? "+" : "") + lv.pctFromPivot.toFixed(2) : "—"}%
                       </td>
                       <td className="px-6 py-3.5">
                         <div className="flex items-center justify-center gap-2">
@@ -259,7 +259,7 @@ function GannCalculatorContent() {
                                   ? "bg-amber-500"
                                   : "bg-zinc-300 dark:bg-zinc-600"
                               }`}
-                              style={{ width: `${lv.confluenceScore * 10}%` }}
+                              style={{ width: `${Math.max(0, Math.min(100, (lv.confluenceScore ?? 0) * 10))}%` }}
                             />
                           </div>
                           <span

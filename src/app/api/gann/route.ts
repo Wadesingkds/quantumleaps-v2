@@ -169,12 +169,16 @@ export async function POST(request: Request) {
       const score = Math.min(10, unique.length * 3 + (unique.length > 1 ? 2 : 0));
       const grade = score >= 7 ? "HIGH" : score >= 4 ? "MED" : "LOW";
 
+      const pivot = g.label.startsWith("BUY") ? (low ?? 0) : (high ?? 0);
+      const pctFromPivot = pivot > 0
+        ? +(((g.level - pivot) / pivot) * 100).toFixed(3)
+        : 0;
       return {
         label: g.label,
         type: g.label.startsWith("BUY") ? "BUY" : "SELL",
         level: g.level,
-        pivot: g.label.startsWith("BUY") ? (low ?? 0) : (high ?? 0),
-        pctFromPivot: +(((g.level - (g.label.startsWith("BUY") ? (low ?? 0) : (high ?? 0))) / (g.label.startsWith("BUY") ? (low ?? 0) : (high ?? 0))) * 100).toFixed(3),
+        pivot,
+        pctFromPivot,
         confluenceScore: score,
         grade,
         smcSignals: unique,
@@ -236,12 +240,16 @@ export async function GET(request: Request) {
     }
     const unique = [...new Set(matched)];
     const score = Math.min(10, unique.length * 3 + (unique.length > 1 ? 2 : 0));
+    const pivot = g.label.startsWith("BUY") ? (low ?? 0) : (high ?? 0);
+    const pctFromPivot = pivot > 0
+      ? +(((g.level - pivot) / pivot) * 100).toFixed(3)
+      : 0;
     return {
       label: g.label,
       type: g.label.startsWith("BUY") ? "BUY" : "SELL",
       level: g.level,
-      pivot: g.label.startsWith("BUY") ? (low ?? 0) : (high ?? 0),
-      pctFromPivot: +(((g.level - (g.label.startsWith("BUY") ? (low ?? 0) : (high ?? 0))) / (g.label.startsWith("BUY") ? (low ?? 0) : (high ?? 0))) * 100).toFixed(3),
+      pivot,
+      pctFromPivot,
       confluenceScore: score,
       grade: score >= 7 ? "HIGH" : score >= 4 ? "MED" : "LOW",
       smcSignals: unique,
