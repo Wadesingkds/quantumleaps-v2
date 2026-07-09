@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0A0E1A"/>
+      <stop offset="1" stop-color="#111827"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#F5B544"/>
+      <stop offset="1" stop-color="#E0962A"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <circle cx="256" cy="256" r="186" fill="none" stroke="url(#gold)" stroke-width="10" opacity="0.45"/>
+  <text x="256" y="256" font-family="Plus Jakarta Sans, Arial, sans-serif" font-size="208" font-weight="800" fill="url(#gold)" text-anchor="middle" dominant-baseline="central" letter-spacing="-8">QL</text>
+  <path d="M150 372 L210 320 L262 356 L362 250" fill="none" stroke="url(#gold)" stroke-width="14" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>
+</svg>

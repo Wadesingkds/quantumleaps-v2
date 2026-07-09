@@ -149,7 +149,7 @@ export async function POST(request: Request) {
     if (candles.length < 50)
       return NextResponse.json({ error: "Need ≥50 candles" }, { status: 400 });
 
-    const gannLevels = calcGann(high, low);
+    const gannLevels = calcGann(high ?? 0, low ?? 0);
     const allSignals = [...detectFVG(candles), ...detectOB(candles), ...detectStructure(candles)];
 
     const results = gannLevels.map((g) => {
@@ -167,8 +167,8 @@ export async function POST(request: Request) {
         label: g.label,
         type: g.label.startsWith("BUY") ? "BUY" : "SELL",
         level: g.level,
-        pivot: g.label.startsWith("BUY") ? low : high,
-        pctFromPivot: +(((g.level - (g.label.startsWith("BUY") ? low : high)) / (g.label.startsWith("BUY") ? low : high)) * 100).toFixed(3),
+        pivot: g.label.startsWith("BUY") ? (low ?? 0) : (high ?? 0),
+        pctFromPivot: +(((g.level - (g.label.startsWith("BUY") ? (low ?? 0) : (high ?? 0))) / (g.label.startsWith("BUY") ? (low ?? 0) : (high ?? 0))) * 100).toFixed(3),
         confluenceScore: score,
         grade,
         smcSignals: unique,
@@ -218,7 +218,7 @@ export async function GET(request: Request) {
   if (candles.length < 50)
     return NextResponse.json({ error: "Need ≥50 candles" }, { status: 400 });
 
-  const gannLevels = calcGann(high, low);
+  const gannLevels = calcGann(high ?? 0, low ?? 0);
   const allSignals = [...detectFVG(candles), ...detectOB(candles), ...detectStructure(candles)];
 
   const results = gannLevels.map((g) => {
@@ -234,8 +234,8 @@ export async function GET(request: Request) {
       label: g.label,
       type: g.label.startsWith("BUY") ? "BUY" : "SELL",
       level: g.level,
-      pivot: g.label.startsWith("BUY") ? low : high,
-      pctFromPivot: +(((g.level - (g.label.startsWith("BUY") ? low : high)) / (g.label.startsWith("BUY") ? low : high)) * 100).toFixed(3),
+      pivot: g.label.startsWith("BUY") ? (low ?? 0) : (high ?? 0),
+      pctFromPivot: +(((g.level - (g.label.startsWith("BUY") ? (low ?? 0) : (high ?? 0))) / (g.label.startsWith("BUY") ? (low ?? 0) : (high ?? 0))) * 100).toFixed(3),
       confluenceScore: score,
       grade: score >= 7 ? "HIGH" : score >= 4 ? "MED" : "LOW",
       smcSignals: unique,
