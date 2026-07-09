@@ -38,8 +38,6 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  console.log("[middleware] user:", user?.id ?? "NULL");
-
   // No user → redirect to login
   if (!user) {
     const url = request.nextUrl.clone();
@@ -54,7 +52,6 @@ export async function middleware(request: NextRequest) {
       .select("is_admin")
       .eq("id", user.id)
       .single();
-    console.log("[middleware] admin profile:", JSON.stringify(profile));
     if (!profile?.is_admin) {
       const url = request.nextUrl.clone();
       url.pathname = "/dashboard";
@@ -64,23 +61,14 @@ export async function middleware(request: NextRequest) {
   }
 
   // Premium gate: free users (logged in) → /pricing
-  const { data: profile, error: profileError } = await supabase
+  const { data: profile } = await supabase
     .from("profiles")
     .select("tier, is_pro")
     .eq("id", user.id)
     .single();
 
-  console.log(
-    "[middleware] profile:",
-    JSON.stringify(profile),
-    "err:",
-    profileError?.message ?? "none"
-  );
-
   const isPro =
     profile?.is_pro || profile?.tier === "pro" || profile?.tier === "admin";
-
-  console.log("[middleware] isPro:", isPro);
 
   if (!isPro) {
     const url = request.nextUrl.clone();
