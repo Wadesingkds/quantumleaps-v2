@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -25,6 +26,13 @@ type Payment = {
   created_at: string;
 };
 
+type ConfirmState = {
+  type: "delete" | "tier";
+  id: string;
+  email: string;
+  tier?: string;
+} | null;
+
 export function UsersContent() {
   const [users, setUsers] = useState<UserRow[]>([]);
   const [q, setQ] = useState("");
@@ -34,6 +42,8 @@ export function UsersContent() {
   const [myId, setMyId] = useState<string | null>(null);
   const [paymentsFor, setPaymentsFor] = useState<{ email: string; rows: Payment[] } | null>(null);
   const [paymentsLoading, setPaymentsLoading] = useState(false);
+  const [confirm, setConfirm] = useState<ConfirmState>(null);
+  const [reason, setReason] = useState("");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -50,36 +60,49 @@ export function UsersContent() {
     load();
   }, [load]);
 
-  async function updateTier(id: string, tier: string) {
-    setBusy(true);
-    const reason = prompt("Reason for tier change?");
-    if (reason === null) {
-      setBusy(false);
+  function openConfirm(c: ConfirmState) {
+    setReason("");
+    setConfirm(c);
+  }
+
+  async function doTierChange() {
+    if (!confirm || confirm.type !== "tier") return;
+    if (!reason.trim()) {
+      toast.error("Reason wajib diisi");
       return;
     }
-    const r = await fetch(`/api/admin/users/${id}`, {
+    setBusy(true);
+    const r = await fetch(`/api/admin/users/${confirm.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ tier, reason }),
+      body: JSON.stringify({ tier: confirm.tier, reason }),
     });
     setBusy(false);
+    setConfirm(null);
     if (r.ok) {
-      setEditing(null);
+      toast.success(`User diubah ke ${confirm.tier}`);
       load();
     } else {
-      alert("Failed: " + (await r.text()));
+      toast.error("Gagal: " + (await r.text()));
     }
   }
 
-  async function deleteUser(id: string, email: string) {
-    if (!confirm(`DELETE user ${email}? This removes their profile + auth account. Cannot be undone.`)) return;
-    const reason = prompt("Reason for deletion?");
-    if (reason === null) return;
+  async function doDelete() {
+    if (!confirm || confirm.type !== "delete") return;
+    if (!reason.trim()) {
+      toast.error("Reason wajib diisi");
+      return;
+    }
     setBusy(true);
-    const r = await fetch(`/api/admin/users/${id}?reason=${encodeURIComponent(reason)}`, { method: "DELETE" });
+    const r = await fetch(`/api/admin/users/${confirm.id}?reason=${encodeURIComponent(reason)}`, { method: "DELETE" });
     setBusy(false);
-    if (r.ok) load();
-    else alert("Failed: " + (await r.text()));
+    setConfirm(null);
+    if (r.ok) {
+      toast.success("User dihapus");
+      load();
+    } else {
+      toast.error("Gagal: " + (await r.text()));
+    }
   }
 
   async function viewPayments(id: string, email: string) {
@@ -137,14 +160,14 @@ export function UsersContent() {
                     </Button>
                     {editing === u.id ? (
                       <>
-                        <Button size="sm" disabled={busy} onClick={() => updateTier(u.id, "pro")}>
+                        <Button size="sm" disabled={busy} onClick={() => openConfirm({ type: "tier", id: u.id, email: u.email ?? u.id, tier: "pro" })}>
                           Make Pro
                         </Button>
-                        <Button size="sm" variant="outline" disabled={busy} onClick={() => updateTier(u.id, "free")}>
+                        <Button size="sm" variant="outline" disabled={busy} onClick={() => openConfirm({ type: "tier", id: u.id, email: u.email ?? u.id, tier: "free" })}>
                           Make Free
                         </Button>
                         {myId !== u.id && (
-                          <Button size="sm" variant="secondary" disabled={busy} onClick={() => updateTier(u.id, "admin")}>
+                          <Button size="sm" variant="secondary" disabled={busy} onClick={() => openConfirm({ type: "tier", id: u.id, email: u.email ?? u.id, tier: "admin" })}>
                             Make Admin
                           </Button>
                         )}
@@ -158,7 +181,7 @@ export function UsersContent() {
                       </Button>
                     )}
                     {myId !== u.id && (
-                      <Button size="sm" variant="destructive" disabled={busy} onClick={() => deleteUser(u.id, u.email ?? u.id)}>
+                      <Button size="sm" variant="destructive" disabled={busy} onClick={() => openConfirm({ type: "delete", id: u.id, email: u.email ?? u.id })}>
                         Delete
                       </Button>
                     )}
@@ -177,6 +200,7 @@ export function UsersContent() {
         </Table>
       </div>
 
+      {/* Payments modal */}
       {paymentsFor && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setPaymentsFor(null)}>
           <div className="max-h-[80vh] w-full max-w-lg overflow-y-auto rounded-xl border border-border bg-card p-5" onClick={(e) => e.stopPropagation()}>
@@ -207,6 +231,41 @@ export function UsersContent() {
                 ))}
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Confirm modal (delete / tier change) */}
+      {confirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => !busy && setConfirm(null)}>
+          <div className="w-full max-w-sm rounded-xl border border-border bg-card p-5" onClick={(e) => e.stopPropagation()}>
+            <h3 className="font-semibold">
+              {confirm.type === "delete" ? `Hapus ${confirm.email}?` : `Ubah ${confirm.email} → ${confirm.tier}?`}
+            </h3>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {confirm.type === "delete"
+                ? "Menghapus profil + akun auth. Tidak bisa dibatalkan."
+                : "Perubahan tier akan dicatat di audit log."}
+            </p>
+            <Input
+              className="mt-3"
+              placeholder="Reason (wajib)"
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+            />
+            <div className="mt-4 flex justify-end gap-2">
+              <Button variant="ghost" size="sm" disabled={busy} onClick={() => setConfirm(null)}>
+                Cancel
+              </Button>
+              <Button
+                variant={confirm.type === "delete" ? "destructive" : "default"}
+                size="sm"
+                disabled={busy}
+                onClick={confirm.type === "delete" ? doDelete : doTierChange}
+              >
+                {busy ? "…" : "Confirm"}
+              </Button>
+            </div>
           </div>
         </div>
       )}

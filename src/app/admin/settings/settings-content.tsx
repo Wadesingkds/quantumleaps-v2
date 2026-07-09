@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
@@ -29,8 +30,12 @@ export function SettingsContent() {
       body: JSON.stringify({ key, value: { enabled: !current } }),
     });
     setBusy(null);
-    if (r.ok) load();
-    else alert("Failed: " + (await r.text()));
+    if (r.ok) {
+      toast.success(`${key} ${!current ? "enabled" : "disabled"}`);
+      load();
+    } else {
+      toast.error("Failed: " + (await r.text()));
+    }
   }
 
   return (
@@ -66,3 +71,4 @@ export function SettingsContent() {
     </div>
   );
 }
+

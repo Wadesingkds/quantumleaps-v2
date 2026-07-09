@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 
 type Flag = {
@@ -35,8 +36,12 @@ export function FlagsContent() {
       body: JSON.stringify({ key: f.key, enabled: !f.enabled }),
     });
     setBusy(null);
-    if (r.ok) load();
-    else alert("Failed: " + (await r.text()));
+    if (r.ok) {
+      toast.success(`${f.key} ${!f.enabled ? "on" : "off"}`);
+      load();
+    } else {
+      toast.error("Failed: " + (await r.text()));
+    }
   }
 
   return (
@@ -62,3 +67,4 @@ export function FlagsContent() {
     </div>
   );
 }
+
