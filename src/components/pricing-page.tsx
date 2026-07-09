@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -76,6 +76,15 @@ export function BuyProButton() {
 
 export function PricingPage() {
   const { isPro, loading } = useAuth();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (searchParams.get("payment") === "success") {
+      toast.success("Pembayaran berhasil! Akses Pro sudah aktif. 🎉");
+      router.replace("/dashboard");
+    }
+  }, [searchParams, router]);
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-16">
