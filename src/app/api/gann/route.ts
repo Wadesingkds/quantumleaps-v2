@@ -5,9 +5,15 @@ const INCREMENTS = [0.125, 0.175, 0.250];
 
 function calcGann(high: number, low: number) {
   const levels: { label: string; level: number }[] = [];
-  for (const inc of INCREMENTS) {
-    levels.push({ label: `BUY${INCREMENTS.indexOf(inc) + 1}`, level: +Math.pow(Math.sqrt(high) - inc, 2).toFixed(2) });
-    levels.push({ label: `SELL${INCREMENTS.indexOf(inc) + 1}`, level: +Math.pow(Math.sqrt(low) + inc, 2).toFixed(2) });
+  if (high > 0) {
+    for (const inc of INCREMENTS) {
+      levels.push({ label: `BUY${INCREMENTS.indexOf(inc) + 1}`, level: +Math.pow(Math.sqrt(high) - inc, 2).toFixed(2) });
+    }
+  }
+  if (low > 0) {
+    for (const inc of INCREMENTS) {
+      levels.push({ label: `SELL${INCREMENTS.indexOf(inc) + 1}`, level: +Math.pow(Math.sqrt(low) + inc, 2).toFixed(2) });
+    }
   }
   return levels;
 }

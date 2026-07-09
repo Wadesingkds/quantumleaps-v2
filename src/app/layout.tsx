@@ -26,6 +26,24 @@ export const metadata: Metadata = {
   description:
     "Confluence scanner untuk XAUUSD. Deteksi FVG, Order Block, BOS, CHoCH secara real-time.",
   manifest: "/manifest.json",
+  metadataBase: new URL("https://quantumleaps.biz.id"),
+  alternates: { canonical: "/" },
+  openGraph: {
+    type: "website",
+    title: "QuantumLeaps — Smart Confluence Scanner for XAUUSD",
+    description:
+      "Confluence scanner untuk XAUUSD. Deteksi FVG, Order Block, BOS, CHoCH secara real-time.",
+    url: "https://quantumleaps.biz.id",
+    siteName: "QuantumLeaps",
+    images: [{ url: "/icon-512.png", width: 512, height: 512, alt: "QuantumLeaps" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "QuantumLeaps — Smart Confluence Scanner for XAUUSD",
+    description:
+      "Confluence scanner untuk XAUUSD. Deteksi FVG, Order Block, BOS, CHoCH secara real-time.",
+    images: ["/icon-512.png"],
+  },
 };
 
 export default function RootLayout({

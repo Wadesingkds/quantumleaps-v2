@@ -212,8 +212,8 @@ export default function HomePage() {
               <h3 className="text-lg font-semibold">Pro</h3>
               <p className="mt-1 text-sm text-muted-foreground">Untuk trader aktif</p>
               <div className="mt-6 flex items-baseline gap-2">
-                <span className="text-4xl font-bold tracking-tight">Rp500K</span>
-                <span className="text-sm text-muted-foreground">/bulan</span>
+                <span className="text-4xl font-bold tracking-tight">Rp999.000</span>
+                <span className="text-sm text-muted-foreground">bayar sekali, akses penuh</span>
               </div>
               <ul className="mt-6 space-y-3 text-sm">
                 {["Semua fitur Basic", "Unlimited konfigurasi", "Data real-time tanpa delay", "Semua timeframe (M15—Daily)", "Alert harga & notifikasi", "History export PDF"].map((f) => (
