@@ -12,7 +12,9 @@ function safeRedirect(target: string | null, fallback = "/dashboard"): string {
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get("code");
-  const redirect = safeRedirect(requestUrl.searchParams.get("redirect"));
+  const requestedRedirect = safeRedirect(requestUrl.searchParams.get("redirect"));
+
+  let redirect = requestedRedirect;
 
   if (code) {
     const supabase = await createClient();
@@ -32,6 +34,17 @@ export async function GET(request: NextRequest) {
         },
         { onConflict: "id" }
       );
+
+      // Pro/Admin users should land on the dashboard, not pricing.
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("tier, is_pro")
+        .eq("id", user.id)
+        .single();
+
+      if (profile?.is_pro || profile?.tier === "pro" || profile?.tier === "admin") {
+        redirect = "/dashboard";
+      }
     }
   }
 
