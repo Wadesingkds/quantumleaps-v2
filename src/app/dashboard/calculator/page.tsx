@@ -70,7 +70,11 @@ function GannCalculatorContent() {
     setLoading(true);
     setError("");
     try {
-      const r = await fetch(`/api/gann?high=${Number(h)}&low=${Number(l)}&tf=${t}`);
+      const params = new URLSearchParams();
+      if (h) params.set("high", String(Number(h)));
+      if (l) params.set("low", String(Number(l)));
+      params.set("tf", t);
+      const r = await fetch(`/api/gann?${params.toString()}`);
       if (!r.ok) {
         const e = await r.json();
         throw new Error(e.error || "Gagal fetch");
@@ -89,7 +93,7 @@ function GannCalculatorContent() {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleCalc() {
-    if (!high || !low) return;
+    if (!high && !low) return;
     fetchCalc(high, low, tf);
   }
 
@@ -110,7 +114,7 @@ function GannCalculatorContent() {
             {/* High */}
             <div className="space-y-2">
               <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
-                <TrendingUp className="size-3.5 text-signal-sell" /> Swing High
+                <TrendingUp className="size-3.5 text-signal-sell" /> Swing High <span className="text-[10px] normal-case font-normal text-muted-foreground/70">(opsional)</span>
               </Label>
               <Input
                 type="number"
@@ -125,7 +129,7 @@ function GannCalculatorContent() {
             {/* Low */}
             <div className="space-y-2">
               <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
-                <TrendingDown className="size-3.5 text-signal-buy" /> Swing Low
+                <TrendingDown className="size-3.5 text-signal-buy" /> Swing Low <span className="text-[10px] normal-case font-normal text-muted-foreground/70">(opsional)</span>
               </Label>
               <Input
                 type="number"
@@ -162,7 +166,7 @@ function GannCalculatorContent() {
             </div>
 
             {/* Calculate */}
-            <Button onClick={handleCalc} disabled={loading || !high || !low} className="h-11 px-6" size="lg">
+            <Button onClick={handleCalc} disabled={loading || (!high && !low)} className="h-11 px-6" size="lg">
               {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Zap className="mr-2 h-4 w-4" />}
               Calculate
             </Button>

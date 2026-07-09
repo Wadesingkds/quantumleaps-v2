@@ -136,11 +136,11 @@ async function fetchTVCandles(tf: string, limit: number): Promise<Candle[]> {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { high, low, tf = "15m" } = body as { high: number; low: number; tf: string };
+    const { high, low, tf = "15m" } = body as { high?: number; low?: number; tf: string };
 
-    if (!high || !low || high <= 0 || low <= 0) {
+    if ((!high || high <= 0) && (!low || low <= 0)) {
       return NextResponse.json(
-        { error: "Provide both high and low parameters > 0", example: "{ high: 4369.66, low: 4306.11, tf: '60' }" },
+        { error: "Provide at least one of high or low (> 0)", example: "{ high: 4369.66 } or { low: 4306.11 }" },
         { status: 400 }
       );
     }
@@ -206,9 +206,9 @@ export async function GET(request: Request) {
   const high = Number(searchParams.get("high"));
   const low = Number(searchParams.get("low"));
 
-  if (!high || !low || high <= 0 || low <= 0) {
+  if ((!high || high <= 0) && (!low || low <= 0)) {
     return NextResponse.json(
-      { error: "Provide high & low", example: "/api/gann?high=4369.66&low=4306.11&tf=60" },
+      { error: "Provide high or low", example: "/api/gann?high=4369.66 or /api/gann?low=4306.11" },
       { status: 400 }
     );
   }
