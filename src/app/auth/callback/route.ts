@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { createClient } from "@/lib/supabase-server";
+import { createServerClient } from "@supabase/ssr";
 
 // Only allow internal, absolute-path redirects (no protocol-relative //evil.com)
 function safeRedirect(target: string | null, fallback = "/dashboard"): string {
@@ -15,12 +15,33 @@ export async function GET(request: NextRequest) {
   const requestedRedirect = safeRedirect(requestUrl.searchParams.get("redirect"));
 
   let redirect = requestedRedirect;
+  // Response that carries refreshed auth cookies from Supabase.
+  let supabaseResponse = NextResponse.next({ request });
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll();
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value }) =>
+            request.cookies.set(name, value)
+          );
+          supabaseResponse = NextResponse.next({ request });
+          cookiesToSet.forEach(({ name, value, options }) =>
+            supabaseResponse.cookies.set(name, value, options)
+          );
+        },
+      },
+    }
+  );
 
   if (code) {
-    const supabase = await createClient();
     await supabase.auth.exchangeCodeForSession(code);
 
-    // Upsert profile on first login
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -48,5 +69,10 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  return NextResponse.redirect(`${requestUrl.origin}${redirect}`);
+  // Forward refreshed auth cookies into the redirect response.
+  const finalRes = NextResponse.redirect(`${requestUrl.origin}${redirect}`);
+  supabaseResponse.cookies.getAll().forEach(({ name, value, options }) => {
+    finalRes.cookies.set(name, value, options);
+  });
+  return finalRes;
 }
