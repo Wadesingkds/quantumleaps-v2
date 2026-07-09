@@ -17,8 +17,7 @@ export async function PATCH(
 
   const { id } = await params;
   const body = await request.json().catch(() => ({}));
-  const { status, tier, reason } = body as {
-    status?: string;
+  const { tier, reason } = body as {
     tier?: string;
     reason?: string;
   };
@@ -28,12 +27,11 @@ export async function PATCH(
   // capture before-state
   const { data: before } = await admin
     .from("profiles")
-    .select("tier, is_admin, status")
+    .select("tier, is_admin")
     .eq("id", id)
     .single();
 
   const changes: Record<string, unknown> = {};
-  if (status && ["active", "suspended", "banned"].includes(status)) changes.status = status;
   if (tier && ["free", "pro", "admin"].includes(tier)) changes.tier = tier;
 
   // role change (tier=admin) is owner-only

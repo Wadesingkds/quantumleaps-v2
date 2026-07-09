@@ -37,9 +37,9 @@ export function UsersContent() {
     load();
   }, [load]);
 
-  async function updateStatus(id: string, status: string) {
+  async function updateTier(id: string, tier: string) {
     setBusy(true);
-    const reason = prompt("Reason for status change?");
+    const reason = prompt("Reason for tier change?");
     if (reason === null) {
       setBusy(false);
       return;
@@ -47,7 +47,7 @@ export function UsersContent() {
     const r = await fetch(`/api/admin/users/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status, reason }),
+      body: JSON.stringify({ tier, reason }),
     });
     setBusy(false);
     if (r.ok) {
@@ -94,7 +94,7 @@ export function UsersContent() {
                 </TableCell>
                 <TableCell>
                   <Badge variant="outline" className="uppercase">
-                    {u.status ?? "active"}
+                    {u.is_admin ? "admin" : "active"}
                   </Badge>
                 </TableCell>
                 <TableCell className="font-mono text-xs text-muted-foreground">
@@ -103,11 +103,11 @@ export function UsersContent() {
                 <TableCell>
                   {editing === u.id ? (
                     <div className="flex gap-1">
-                      <Button size="sm" disabled={busy} onClick={() => updateStatus(u.id, "active")}>
-                        Activate
+                      <Button size="sm" disabled={busy} onClick={() => updateTier(u.id, "pro")}>
+                        Make Pro
                       </Button>
-                      <Button size="sm" variant="destructive" disabled={busy} onClick={() => updateStatus(u.id, "suspended")}>
-                        Suspend
+                      <Button size="sm" variant="outline" disabled={busy} onClick={() => updateTier(u.id, "free")}>
+                        Make Free
                       </Button>
                       <Button size="sm" variant="ghost" onClick={() => setEditing(null)}>
                         Cancel
