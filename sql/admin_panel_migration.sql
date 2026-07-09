@@ -42,6 +42,12 @@ create table if not exists public.feature_flags (
   updated_by  uuid references auth.users(id),
   updated_at  timestamptz default now()
 );
+-- Backfill: if table pre-existed with an older schema, add missing columns
+alter table public.feature_flags add column if not exists description text;
+alter table public.feature_flags add column if not exists owner text;
+alter table public.feature_flags add column if not exists rollout_pct int default 0 check (rollout_pct between 0 and 100);
+alter table public.feature_flags add column if not exists updated_by uuid references auth.users(id);
+alter table public.feature_flags add column if not exists updated_at timestamptz default now();
 insert into public.feature_flags (key, enabled, description, owner) values
   ('promo_banner',   false, 'Show discount banner on landing', 'admin'),
   ('beta_calculator', false, 'New calculator UI', 'admin')
