@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowRight, ArrowUpRight, Activity, Layers, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
 
 const pillars = [
   {
@@ -135,7 +136,7 @@ export default function HomePage() {
               Tiga pilar analisis institusional, jadi satu tool.
             </h2>
           </div>
-          <div className="grid gap-px overflow-hidden rounded-xl border border-border bg-border md:grid-cols-3">
+          <div className="grid gap-px overflow-hidden rounded-xl border border-border bg-border md:grid-cols-[1.2fr_0.9fr_0.9fr]">
             {pillars.map((p, i) => (
               <div key={p.name} className="bg-card p-8">
                 <div className="flex items-center gap-3">
@@ -231,13 +232,81 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Standing schedule — real broadcast shape, not fake chrome */}
+      <section id="jadwal" className="border-b border-border/60 bg-muted/30">
+        <div className="mx-auto max-w-6xl px-6 py-20">
+          <div className="mb-12 max-w-2xl">
+            <span className="font-mono text-sm text-primary">
+              04 — Jadwal Signal
+            </span>
+            <h2 className="mt-3 text-3xl font-bold tracking-tight md:text-4xl">
+              Bukan alert pasar — ini standing schedule.
+            </h2>
+            <p className="mt-4 max-w-md text-muted-foreground">
+              Tiap timeframe memetakan zona pending terdekat + countdown,
+              sebelum harga nyampe. Lu lihat timing, bukan cuma notif pas
+              sinyal udah telat.
+            </p>
+          </div>
+
+          <Card className="mx-auto max-w-2xl">
+            <div className="flex items-center gap-3 border-b border-border px-5 py-4">
+              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground font-mono text-xs font-semibold">
+                QL
+              </span>
+              <span className="font-semibold">
+                XAUUSD ·{" "}
+                <a
+                  href="https://quantumleaps.biz.id"
+                  className="text-primary underline-offset-4 hover:underline"
+                >
+                  QuantumLeaps.biz.id
+                </a>
+              </span>
+              <span className="ml-auto font-mono text-xs text-muted-foreground">
+                14 Juli 2026
+              </span>
+            </div>
+
+            <div className="divide-y divide-border">
+              {[
+                { tf: "1m", time: "11:54 WIB", cd: "~3m lagi" },
+                { tf: "5m", time: "12:00 WIB", cd: "~9m lagi" },
+                { tf: "15m", time: "13:30 WIB", cd: "~1j 39m lagi" },
+                { tf: "30m", time: "12:00 WIB", cd: "~9m lagi" },
+              ].map((s) => (
+                <div
+                  key={s.tf}
+                  className="flex items-center gap-3 px-5 py-3 text-sm"
+                >
+                  <span className="h-2 w-2 shrink-0 rounded-full bg-signal-sell" />
+                  <span className="font-semibold">ZONA SELL {s.tf}</span>
+                  <span className="text-muted-foreground">— {s.time}</span>
+                  <span className="ml-auto font-mono text-xs text-primary">
+                    {s.cd}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex items-center gap-3 border-t border-border px-5 py-3 text-xs text-muted-foreground">
+              <span>11:50:38 WIB · 04:50:38 UTC</span>
+              <span className="ml-auto flex items-center gap-1.5 text-foreground">
+                <span className="h-2 w-2 rounded-[2px] bg-[linear-gradient(90deg,oklch(0.6_0.22_27)_33%,oklch(0.6_0.18_145)_66%,oklch(0.65_0.18_310))]" />
+                live signal
+              </span>
+            </div>
+          </Card>
+        </div>
+      </section>
+
       {/* CTA */}
       <section className="border-b border-border/60">
-        <div className="mx-auto max-w-6xl px-6 py-20 text-center">
-          <h2 className="mx-auto max-w-2xl text-3xl font-bold tracking-tight md:text-4xl">
+        <div className="mx-auto max-w-6xl px-6 py-20">
+          <h2 className="max-w-2xl text-3xl font-bold tracking-tight md:text-4xl">
             Siap menemukan edge Anda?
           </h2>
-          <p className="mx-auto mt-4 max-w-md text-muted-foreground">
+          <p className="mt-4 max-w-md text-muted-foreground">
             Akses dibuat bertahap untuk menjaga kualitas data dan performa.
           </p>
           <Button size="lg" className="mt-8" render={<Link href="/dashboard" />}>
