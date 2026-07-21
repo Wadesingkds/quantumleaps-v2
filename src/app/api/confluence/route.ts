@@ -1,7 +1,5 @@
 import { NextResponse } from "next/server";
-
-
-type Candle = { time: number; open: number; high: number; low: number; close: number };
+import { detectAllSignals, type SMCSignal, type Candle } from "@/lib/smc";
 
 
 function makeSyntheticCandles(tf: string, limit: number): Candle[] {
@@ -111,6 +109,16 @@ async function buildResponse(candles: Candle[], tf: string) {
   const bbVal = bb(candles);
   const trend = ema9 > ema21 && ema21 > ema50 ? "BULLISH" : ema9 < ema21 && ema21 < ema50 ? "BEARISH" : "NEUTRAL";
 
+  // SMC detection
+  const smcSignals = detectAllSignals(candles);
+  const price_time = candles[candles.length - 1].time;
+  const recentSMC = smcSignals.filter(s => {
+    const age = (price_time - s.time) / 3600000; // hours
+    return age < 24; // only signals from last 24h
+  });
+  const smcMap = { fvg: 0, ob: 0, bos: 0, choch: 0 } as Record<string, number>;
+  for (const s of recentSMC) smcMap[s.type]++;
+
   const levels = gannLevels(price).map(level => {
     let score = 0;
     const pct = Math.abs(level - price) / price * 100;
@@ -122,10 +130,37 @@ async function buildResponse(candles: Candle[], tf: string) {
     if (level > price && Math.abs(level - bbVal.upper) / bbVal.upper < 0.002) score += 2;
     if (level < price && ema9 > ema21) score += 1;
     if (level > price && ema9 < ema21) score += 1;
+
+    // SMC bonus: if level near an OB/FVG zone, boost score
+    const smcBonus = recentSMC.filter(s => {
+      if (s.type === "OB") {
+        return Math.abs(level - s.price) / price < 0.005;
+      }
+      if (s.type === "FVG") {
+        const halfATR = atrVal * 0.5;
+        return level >= s.price - halfATR && level <= s.price + halfATR;
+      }
+      return false;
+    }).length;
+    score += Math.min(smcBonus * 2, 4);
+
+    // BOS/CHoCH trend alignment bonus
+    const recentBOS = recentSMC.filter(s => s.type === "BOS" || s.type === "CHoCH");
+    for (const bos of recentBOS) {
+      const bosDir = bos.direction;
+      if (bosDir === "buy" && level < price) score += 1;
+      if (bosDir === "sell" && level > price) score += 1;
+    }
+
+    const signals: string[] = ["Gann"];
+    if (recentSMC.some(s => s.type === "OB" && s.direction === (level < price ? "buy" : "sell"))) signals.push("OB");
+    if (recentSMC.some(s => s.type === "FVG")) signals.push("FVG");
+    if (recentBOS.some(s => s.direction === (level < price ? "buy" : "sell"))) signals.push(level < price ? "BOS↑" : "BOS↓");
+
     return {
-      level, score: Math.min(score, 10),
+      level, score: Math.min(score, 14),
       type: level < price ? "BUY" as const : "SELL" as const,
-      signals: ["Gann"],
+      signals,
     };
   }).sort((a, b) => b.score - a.score).slice(0, 5);
 
@@ -145,6 +180,7 @@ async function buildResponse(candles: Candle[], tf: string) {
     atr: Math.round(atrVal * 1000) / 1000,
     ema: { ema9: Math.round(ema9 * 100) / 100, ema21: Math.round(ema21 * 100) / 100, ema50: Math.round(ema50 * 100) / 100 },
     bb: { basis: Math.round(bbVal.basis * 100) / 100, upper: Math.round(bbVal.upper * 100) / 100, lower: Math.round(bbVal.lower * 100) / 100 },
+    smc: smcMap,
     levels,
     timestamp: new Date().toISOString(),
     source: "OANDA:XAUUSD via quantum-api (TradingView)",
