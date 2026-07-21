@@ -29,17 +29,15 @@ async function fetchLivePrice(): Promise<number | null> {
   } catch { return null; }
 }
 
-async function fetchBinanceCandles(tf: string, limit: number): Promise<Candle[]> {
-  const resp = await fetch(`https://api.binance.com/api/v3/klines?symbol=PAXGUSDT&interval=${tf}&limit=${limit}`, {
-    headers: { "User-Agent": "quantumleaps/1.0" },
-    cache: "no-store",
-    signal: AbortSignal.timeout(15000),
-  });
-  if (!resp.ok) return makeSyntheticCandles(tf, limit);
-  const raw = await resp.json();
-  return raw.map((k: any[]) => ({
-    time: k[0], open: +k[1], high: +k[2], low: +k[3], close: +k[4],
-  }));
+async function fetchCandles(tf: string, limit: number): Promise<Candle[]> {
+  try {
+    const resp = await fetch(`${QA_URL}/candles?tf=${tf}&limit=${limit}`, {
+      signal: AbortSignal.timeout(15000),
+    });
+    if (!resp.ok) return [];
+    const json = await resp.json();
+    return json.data ?? [];
+  } catch { return []; }
 }
 
 function rsi(candles: Candle[], period = 14): number {
@@ -149,7 +147,7 @@ async function buildResponse(candles: Candle[], tf: string) {
     bb: { basis: Math.round(bbVal.basis * 100) / 100, upper: Math.round(bbVal.upper * 100) / 100, lower: Math.round(bbVal.lower * 100) / 100 },
     levels,
     timestamp: new Date().toISOString(),
-    source: "OANDA:XAUUSD via quantum-api + PAXG candles",
+    source: "OANDA:XAUUSD via quantum-api (TradingView)",
   };
 }
 
@@ -158,7 +156,7 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const tf = searchParams.get("tf") || "15m";
     const limit = Math.min(Number(searchParams.get("limit") || 200), 500);
-    const candles = await fetchBinanceCandles(tf, limit);
+    const candles = await fetchCandles(tf, limit);
     if (candles.length < 50)
       return NextResponse.json({ error: "Need ≥50 candles" }, { status: 400 });
     return NextResponse.json(await buildResponse(candles, tf));
