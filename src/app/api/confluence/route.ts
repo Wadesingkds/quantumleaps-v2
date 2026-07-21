@@ -117,7 +117,7 @@ async function buildResponse(candles: Candle[], tf: string) {
     return age < 24; // only signals from last 24h
   });
   const smcMap = { fvg: 0, ob: 0, bos: 0, choch: 0 } as Record<string, number>;
-  for (const s of recentSMC) smcMap[s.type]++;
+  for (const s of recentSMC) smcMap[s.type.toLowerCase()]++;
 
   const levels = gannLevels(price).map(level => {
     let score = 0;
