@@ -18,7 +18,7 @@ function makeSyntheticCandles(tf: string, limit: number): Candle[] {
   });
 }
 
-const QA_URL = "https://quantum-api.sayandaktau.my.id";
+const QA_URL = "https://quantum-api.quantumleaps.biz.id";
 
 async function fetchLivePrice(): Promise<number | null> {
   try {
