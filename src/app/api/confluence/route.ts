@@ -20,7 +20,7 @@ const QA_URL = "https://quantum-api.quantumleaps.biz.id";
 
 async function fetchLivePrice(): Promise<number | null> {
   try {
-    const r = await fetch(`${QA_URL}/price`, { signal: AbortSignal.timeout(5000) });
+    const r = await fetch(`${QA_URL}/price`, { signal: AbortSignal.timeout(10000) });
     if (!r.ok) return null;
     const d = await r.json();
     return d.close ?? null;
@@ -30,7 +30,7 @@ async function fetchLivePrice(): Promise<number | null> {
 async function fetchCandles(tf: string, limit: number): Promise<Candle[]> {
   try {
     const resp = await fetch(`${QA_URL}/candles?tf=${tf}&limit=${limit}`, {
-      signal: AbortSignal.timeout(15000),
+      signal: AbortSignal.timeout(25000),
     });
     if (!resp.ok) return [];
     const json = await resp.json();
