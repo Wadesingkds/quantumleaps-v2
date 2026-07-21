@@ -21,10 +21,10 @@ const QA_URL = "https://quantum-api.quantumleaps.biz.id";
 async function fetchLivePrice(): Promise<number | null> {
   try {
     const r = await fetch(`${QA_URL}/price`, { signal: AbortSignal.timeout(10000) });
-    if (!r.ok) return null;
+    if (!r.ok) { console.error("price fetch failed:", r.status); return null; }
     const d = await r.json();
     return d.close ?? null;
-  } catch { return null; }
+  } catch(e: any) { console.error("price error:", e.message); return null; }
 }
 
 async function fetchCandles(tf: string, limit: number): Promise<Candle[]> {
@@ -32,10 +32,10 @@ async function fetchCandles(tf: string, limit: number): Promise<Candle[]> {
     const resp = await fetch(`${QA_URL}/candles?tf=${tf}&limit=${limit}`, {
       signal: AbortSignal.timeout(25000),
     });
-    if (!resp.ok) return [];
+    if (!resp.ok) { console.error("candles fetch failed:", resp.status, await resp.text().catch(()=>"")); return []; }
     const json = await resp.json();
     return json.data ?? [];
-  } catch { return []; }
+  } catch(e: any) { console.error("candles error:", e.message); return []; }
 }
 
 function rsi(candles: Candle[], period = 14): number {
